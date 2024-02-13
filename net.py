@@ -1,14 +1,15 @@
 from ip import *
 from binmanipulation import getFirstSetBitPos
+import numpy as np
 
 
-class net:
+class Net:
     def __init__(self, routers, netdict=None):
-        if netdict is None:
-            self.netdict = net.generate_netdict(routers)
         self.netdict = netdict
+        if netdict is None:
+            self.netdict = Net.generate_netdict(routers)
         self.routers = routers
-        self.ranges
+        self.emptyranges = []
 
     def generate_netdict(routers):
         netdict = {}
@@ -24,12 +25,13 @@ class net:
                     netdict[brg]["netip"] = get_net_ip(con[1])
                     netdict[brg]["mask"] = int(con[1].split("/")[1])
                     netdict[brg]["maxdevices"] = 2 ** (32 - netdict[brg]["mask"])
-
+        print(netdict)
         return netdict
 
     def fix_ranges(ranges):
         res = []
         for ran in ranges:
+            print(ranges)
             # (32,127,None)
             if ran[2] is None:
                 maskstart = 33 - getFirstSetBitPos(ran[0])  # 27
@@ -38,7 +40,7 @@ class net:
                 broadipintstart = ip_to_int(
                     get_broadcast(int_to_ip(ran[0]), maskstart)
                 )  # 63
-
+                print(maskstart, maskend, netipintend, broadipintstart)
                 if maskstart == maskend:
                     if netipintend == ran[0]:
                         res += [(ran[0], ran[1], maskstart)]
@@ -50,7 +52,9 @@ class net:
                     else:
                         res += (
                             [(ran[0], broadipintstart, maskstart)]
-                            + fix_ranges([broadipintstart + 1, netipintend - 1, None])
+                            + Net.fix_ranges(
+                                [(broadipintstart + 1, netipintend - 1, None)]
+                            )
                             + [(netipintend, ran[1], maskend)]
                         )
                 elif maskstart > maskend:
@@ -63,8 +67,8 @@ class net:
                         ]
 
                     else:
-                        res += [(ran[0], broadipintstart, maskstart)] + fix_ranges(
-                            [broadipintstart + 1, ran[1], None]
+                        res += [(ran[0], broadipintstart, maskstart)] + Net.fix_ranges(
+                            [(broadipintstart + 1, ran[1], None)]
                         )
 
                 elif maskstart < maskend:
@@ -76,7 +80,7 @@ class net:
                             (netipintend, ran[1], maskend),
                         ]
                     else:
-                        res += fix_ranges([ran[0], netipintend - 1, None]) + [
+                        res += Net.fix_ranges([(ran[0], netipintend - 1, None)]) + [
                             (netipintend, ran[1], maskend)
                         ]
                 else:
@@ -86,12 +90,12 @@ class net:
 
         return res
 
-    def get_usable_ranges(netdict, mainnetip, mask=None):
+    def get_usable_ranges(self, mainnetip, mask=None):
         if mask is None:
             mask = int(mainnetip.split("/")[1])
             mainnetip = mainnetip.split("/")[0]
         ranges = []
-        for brg, conf in netdict.items():
+        for brg, conf in self.netdict.items():
             if "netip" in conf.keys():
                 ranges = ranges + [
                     (
@@ -115,10 +119,18 @@ class net:
         for i, ran in enumerate(used_ranges[:-1]):
             if ran[1] + 1 != used_ranges[i + 1][0]:
                 available += [(ran[1] + 1, used_ranges[i][0] - 1, None)]
-        print(available)
-        return available
+        self.emptyranges = Net.fix_ranges(available)
+        return self.emptyranges
 
-    def assign_subrange(netdict, mainnetip, mask=None):
+    def assign_subrange(self, mainnetip, mask=None, compact=True):
         if mask is None:
             mask = int(mainnetip.split("/")[1])
             mainnetip = mainnetip.split("/")[0]
+        self.get_usable_ranges(mainnetip, mask)
+        brgs = list(self.netdict.keys())
+        sorted(brgs, key=lambda x: self.netdict[x]["devcount"], reverse=True)
+        for brg in brgs:
+            if "netip" in self.netdict[brg].keys():
+                continue
+            mask = 32-np.ceil(np.log2(self.netdict[brg]["devcount"]))
+            
