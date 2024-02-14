@@ -1,13 +1,17 @@
 from ip import *
 from binmanipulation import getFirstSetBitPos
 import numpy as np
+from pprint import pprint
+from route import RouteTable
 
 
 class Net:
-    def __init__(self, routers, netdict=None):
+    def __init__(self, routers, netdict=None, routes=None):
         self.netdict = netdict
         if netdict is None:
             self.netdict = Net.generate_netdict(routers)
+        if routes is None:
+            self.routes = Net.generate_routes(routers)
         self.routers = routers
         self.emptyranges = []
 
@@ -25,15 +29,32 @@ class Net:
                     netdict[brg]["netip"] = get_net_ip(con[1])
                     netdict[brg]["mask"] = int(con[1].split("/")[1])
                     netdict[brg]["maxdevices"] = 2 ** (32 - netdict[brg]["mask"])
-        print(netdict)
         return netdict
+
+    def generate_routes(routers):
+        routes = RouteTable()
+        for router, value in routers.items():
+            for port, con in value.items():
+                if len(con) > 1:
+                    routes.add_route(
+                        {
+                            "Type": "C",
+                            "Destination": con[1],
+                            "Cost": "0",
+                            "NextHop": "direct connect",
+                            "Interface": port,
+                            "Mask": int(con[1].split("/")[1]),
+                            "Selected": True,
+                        }
+                    )
+        return routes
 
     def fix_ranges(ranges):
         res = []
         for ran in ranges:
-            print(ranges)
             # (32,127,None)
             if ran[2] is None:
+                print(ran)
                 maskstart = 33 - getFirstSetBitPos(ran[0])  # 27
                 maskend = 33 - getFirstSetBitPos(~ran[1])  # 25
                 netipintend = ip_to_int(get_net_ip(int_to_ip(ran[1]), maskend))  # 0
@@ -120,17 +141,124 @@ class Net:
             if ran[1] + 1 != used_ranges[i + 1][0]:
                 available += [(ran[1] + 1, used_ranges[i][0] - 1, None)]
         self.emptyranges = Net.fix_ranges(available)
+        self.emptyranges = sorted(self.emptyranges, key=lambda x: x[0])
+
         return self.emptyranges
 
-    def assign_subrange(self, mainnetip, mask=None, compact=True):
+    def print_ranges_with_ip(ranges):
+        for ran in ranges:
+            print(int_to_ip(ran[0]), int_to_ip(ran[1]), ran[2])
+
+    def assign_subnets(self, mainnetip, mask=None):
         if mask is None:
             mask = int(mainnetip.split("/")[1])
             mainnetip = mainnetip.split("/")[0]
         self.get_usable_ranges(mainnetip, mask)
         brgs = list(self.netdict.keys())
-        sorted(brgs, key=lambda x: self.netdict[x]["devcount"], reverse=True)
+        brgs = sorted(
+            brgs, key=lambda x: (self.netdict[x]["devcount"], x), reverse=True
+        )
+
+        tempranges = []
         for brg in brgs:
             if "netip" in self.netdict[brg].keys():
                 continue
-            mask = 32-np.ceil(np.log2(self.netdict[brg]["devcount"]))
-            
+            ranges = sorted(
+                self.emptyranges,
+                key=lambda x: x[2],
+            )
+            print(brg)
+            pprint(self.netdict[brg])
+            Net.print_ranges_with_ip(ranges)
+            mask = 32 - int(np.ceil(np.log2(self.netdict[brg]["devcount"])))
+            tempranges = ranges.copy()
+
+            print(mask)
+
+            for n, ran in enumerate(ranges):
+                print(int_to_ip(ran[0]), int_to_ip(ran[1]), ran[2])
+                if ran[2] == mask:
+                    self.netdict[brg]["netip"] = int_to_ip(ran[0])
+                    self.netdict[brg]["mask"] = mask
+                    self.netdict[brg]["maxdevices"] = 2 ** (32 - mask)
+                    tempranges.pop(n)
+                    break
+                elif ran[2] < mask:
+                    self.netdict[brg]["netip"] = int_to_ip(ran[0])
+                    self.netdict[brg]["mask"] = mask
+                    self.netdict[brg]["maxdevices"] = 2 ** (32 - mask)
+                    tempranges.pop(n)
+                    tempranges += [
+                        (
+                            ip_to_int(get_broadcast(int_to_ip(ran[0]), mask)) + 1,
+                            ran[1],
+                            None,
+                        )
+                    ]
+                    self.emptyranges = Net.fix_ranges(tempranges)
+
+                    print("===" * 10)
+                    Net.print_ranges_with_ip(ranges)
+                    print("===" * 10)
+                    Net.print_ranges_with_ip(
+                        [
+                            (
+                                ip_to_int(get_broadcast(int_to_ip(ran[0]), mask)) + 1,
+                                ran[1],
+                                None,
+                            )
+                        ]
+                    )
+                    print("===" * 10)
+
+                    ranges = sorted(ranges, key=lambda x: x[2])
+                    Net.print_ranges_with_ip(ranges)
+                    pprint(self.netdict[brg])
+                    break
+            else:
+                raise Exception("No more ranges available")
+            print("===" * 10)
+            print("===" * 10)
+        return self.netdict
+
+    def get_router_port_from_brdg(self, router, brg):
+        for port, con in self.routers[router].items():
+            if con[0] == brg:
+                return port
+        return None
+
+    def check_ip_used(self, ip, brg):
+        for router in self.netdict[brg]["routers"]:
+            for port, con in self.routers[router].items():
+                if len(con) == 1:
+                    continue
+                if con[0] != brg:
+                    continue
+                if ip in con[1]:
+                    return True
+        return False
+
+    def assign_ips(self):
+        for router, value in self.routers.items():
+            for port, con in value.items():
+                if len(con) > 1:
+                    continue
+                brg = con[0]
+                portip = (
+                    int_to_ip(
+                        ip_to_int(self.netdict[brg]["netip"])
+                        + self.netdict[brg]["routers"].index(router)
+                        + 1
+                    )
+                    + "/"
+                    + str(self.netdict[brg]["mask"])
+                )
+                for i in range(
+                    ip_to_int(portip.split("/")[0]),
+                    ip_to_int(get_broadcast(portip)) - 1,
+                ):
+                    if not self.check_ip_used(int_to_ip(i), brg):
+                        portip = int_to_ip(i) + "/" + str(self.netdict[brg]["mask"])
+                        break
+                self.routers[router][port].append(portip)
+        return self.routers
