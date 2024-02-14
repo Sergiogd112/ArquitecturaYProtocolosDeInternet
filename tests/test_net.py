@@ -209,6 +209,11 @@ def test_check_ip_used100(net):
 
 
 def test_assign_ips(net):
+    net.netdict["br01"]["devcount"] = 2 + 60
+    net.netdict["br02"]["devcount"] = 2 + 20
+    net.netdict["br03"]["devcount"] = 2 + 12
+    net.netdict["br04"]["devcount"] = 2 + 6
+    net.netdict["br05"]["devcount"] = 2 + 6
     net.assign_subnets("10.0.0.0/24")
     net.assign_ips()
     expected = {
@@ -238,3 +243,11 @@ def test_assign_ips(net):
             "eth2": ["br10", "10.0.0.121/29"],
         },
     }
+    pprint(net.routers)
+    pprint(expected)
+    for router, con in net.routers.items():
+        print("===" * 20)
+        for port, ip in con.items():
+            print(router, port, ip)
+            print(expected[router][port])
+            assert ip == expected[router][port]

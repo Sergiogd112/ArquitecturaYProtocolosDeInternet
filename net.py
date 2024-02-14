@@ -8,11 +8,12 @@ from route import RouteTable
 class Net:
     def __init__(self, routers, netdict=None, routes=None):
         self.netdict = netdict
+        self.routers = routers
         if netdict is None:
             self.netdict = Net.generate_netdict(routers)
         if routes is None:
-            self.routes = Net.generate_routes(routers)
-        self.routers = routers
+            self.routes = {}
+            # self.generate_routes(routers)
         self.emptyranges = []
 
     def generate_netdict(routers):
@@ -31,12 +32,15 @@ class Net:
                     netdict[brg]["maxdevices"] = 2 ** (32 - netdict[brg]["mask"])
         return netdict
 
-    def generate_routes(routers):
-        routes = RouteTable()
+    def generate_routes(self, routers=None):
+        if routers is None:
+            routers = self.routers
         for router, value in routers.items():
+            if not (router in self.routes.keys()):
+                self.routes[router] = RouteTable()
             for port, con in value.items():
                 if len(con) > 1:
-                    routes.add_route(
+                    self.routes[router].add_route(
                         {
                             "Type": "C",
                             "Destination": con[1],
@@ -47,7 +51,7 @@ class Net:
                             "Selected": True,
                         }
                     )
-        return routes
+        return self.routes
 
     def fix_ranges(ranges):
         res = []
