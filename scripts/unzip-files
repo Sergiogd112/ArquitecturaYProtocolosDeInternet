@@ -14,7 +14,10 @@ if [[ ("$#" -eq 1) ]]; then
    #if [ -z "$practica" ] ; then usage ; exit 1 ; fi
    practica=$1
    echo $practica
-   unzip /home/api/Desktop/$practica.zip -d /home/api/practiques
+   # get the current directory
+   current_dir=$(pwd)
+   # unzip the file
+   unzip $current_dir/$practica.zip -d /home/api/practiques
    chmod u+x /home/api/practiques/$practica/scripts/*
    chmod u+x /home/api/practiques/$practica-*
    cp /home/api/practiques/$practica/scripts/* /home/api/practiques/scripts
