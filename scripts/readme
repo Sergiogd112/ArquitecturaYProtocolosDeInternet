@@ -1,0 +1,18 @@
+01-create-containers num_lxc [num_pcs]
+04-start-containers num_lxc [num_pcs]
+05-stop-containers num_lxc [num_pcs]
+07-destroy-containers num_lxc [num_pcs]
+
+02-copy-files num_lxc dir_files [z zr zo]
+06-clean-quagga-files num_lxc [r o]
+
+02-copy-files-PCs num_pcs dir_files 
+06-clean-quagga-files-PCs num_pcs
+
+03-create-bridges num_bridges
+08-delete-bridges num_bridges
+
+09-start-pim num_lxc dir_files
+
+10-source-mgen PC-name ethX
+04-rp-filter num_lxc [num_pcs]

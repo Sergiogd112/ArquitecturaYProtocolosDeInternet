@@ -1,0 +1,25 @@
+#!/bin/bash
+if [[ ("$#" -eq 1 ) ]]; then
+#usage () {
+#  echo "unzip-files -p PRACTICA [-h]"
+#}
+
+#while getopts ":p:h" opt; do
+#  case $opt in
+#    p) practica="$OPTARG";;
+#    h | [?]) usage ; exit;;
+#  esac
+#done
+#shift "$(($OPTIND -1))"
+#if [ -z "$practica" ] ; then usage ; exit 1 ; fi
+practica=$1
+echo $practica
+unzip /root/Desktop/$practica.zip -d /home/api/practiques
+chmod u+x /home/api/practiques/$practica/scripts/*
+chmod u+x /home/api/practiques/$practica-*
+cp /home/api/practiques/$practica/scripts/* /home/api/practiques/scripts
+rm /root/Desktop/$practica.zip
+/home/api/practiques/scripts/"$practica"_init
+else
+   echo "Falta el nom del fitxer a descomprimir"
+fi

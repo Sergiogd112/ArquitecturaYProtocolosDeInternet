@@ -1,0 +1,6 @@
+#!/bin/bash
+total=$1
+for ((i = 1; i <= $total; i++)); do
+    cp $2/pimd.conf_$(printf "R%02d" $i) /var/lib/lxc/$(printf "R%02d" $i)/rootfs/root/pimd/pimd.conf
+    lxc-attach -n $(printf "R%02d" $i) -- nohup bash -c "pimd -f /root/pimd/pimd.conf -dall 2> /root/pimd/dump &"
+done

@@ -1,0 +1,19 @@
+#!/bin/bash
+total=$1
+for ((i = 1; i <= $total; i++)); do
+	rm /var/lib/lxc/$(printf "R%02d" $i)/rootfs/etc/quagga/*.conf
+	cp /var/lib/lxc/api/rootfs/etc/quagga/zebra.conf /var/lib/lxc/$(printf "R%02d" $i)/rootfs/etc/quagga/zebra.conf
+	touch /var/lib/lxc/$(printf "R%02d" $i)/rootfs/etc/quagga/vtysh.conf
+done
+if [ "$#" -eq 2 ]; then
+	if [[ $2 == r ]]; then
+		for ((i = 1; i <= $total; i++)); do
+			touch /var/lib/lxc/$(printf "R%02d" $i)/rootfs/etc/quagga/ripd.conf
+		done
+	fi
+	if [[ $2 == o ]]; then
+		for ((i = 1; i <= $total; i++)); do
+			touch /var/lib/lxc/$(printf "R%02d" $i)/rootfs/etc/quagga/ospfd.conf
+		done
+	fi
+fi

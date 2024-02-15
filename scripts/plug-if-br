@@ -1,0 +1,2 @@
+#!/bin/bash
+brctl addif $2 $1

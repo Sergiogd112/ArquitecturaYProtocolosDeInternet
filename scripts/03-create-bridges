@@ -1,0 +1,6 @@
+#!/bin/bash
+total=$1
+for ((i = 1; i <= $total; i++)); do
+    brctl addbr $(printf "br%02d" $i)
+    ip link set dev $(printf "br%02d" $i) up
+done

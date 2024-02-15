@@ -1,0 +1,5 @@
+#! /bin/bash
+printf -v var "ping %s" "$2"
+cmd_ping="$var | xargs -L 1 -I '{}' date '+%Y-%m-%d %H:%M:%S: {}'"
+#echo $cmd_ping
+lxc-attach -n $1 -- bash -c "$cmd_ping"

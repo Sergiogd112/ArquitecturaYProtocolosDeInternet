@@ -1,0 +1,13 @@
+#!/bin/bash
+ifcs=("eth0" "eth1" "eth2")
+while (("$#")); do
+  echo $1
+  num_ifs=$(lxc-attach -n $1 -- ip link show | grep -P 'eth[0-9]' | wc -l)
+  for ((i = 0; i < num_ifs; i++)); do
+    ip=$(lxc-attach -n $1 -- ip -4 addr show eth$i | grep inet | awk '{print $2}')
+    address=$(ipcalc $ip | grep "Address:" | awk '{print $2}')
+    network=$(ipcalc $ip | grep "Network:" | awk '{print $2}')
+    printf "\t%s\tAddress: %s\tNetwork: %s\n" eth$i $address $network
+  done
+  shift
+done

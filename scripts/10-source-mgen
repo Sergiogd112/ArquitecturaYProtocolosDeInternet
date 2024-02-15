@@ -1,0 +1,4 @@
+#!/bin/bash
+total=$1
+lxc-attach -n $1 -- bash -c "ethtool --offload $2 rx off tx off"
+lxc-attach -n $1 -- bash -c "ethtool -K $2 gso off"
