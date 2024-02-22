@@ -1,10 +1,10 @@
-from net import Net
 from pytest import fixture
 from pprint import pprint
 import pandas as pd
-from mytty import get_tty_width
 from rich.console import Console
 from ip import ip_to_int
+from net import Net
+from mytty import get_tty_width
 
 
 @fixture
