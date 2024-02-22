@@ -7,7 +7,8 @@ import numpy as np
 from colorama import Fore, Style
 from matplotlib import pyplot as plt
 import networkx as nx
-from rich.console import Console
+
+# from rich.console import Console
 from route import RouteTable
 from ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
 from binmanipulation import getFirstSetBitPos
@@ -59,7 +60,7 @@ class Net:
                 brg = con["brg"]
                 if brg is None:
                     continue
-                if not (brg in netdict.keys()):
+                if brg not in netdict:
                     netdict[brg] = {"routers": [router], "devcount": 3}
                 else:
                     netdict[brg]["routers"].append(router)
@@ -162,7 +163,7 @@ class Net:
                 else:
                     res[name] = {"brg": None}
             if "router ospf" in block:
-                if not "ospf" in res.keys():
+                if "ospf" not in res:
                     res["ospf"] = {}
                 for line in block.split("\n")[1:]:
                     area = line.split("area ")[1].split("\n")[0]
@@ -207,7 +208,7 @@ class Net:
         if routers is None:
             routers = self.routers
         for router, value in routers.items():
-            if not (router in self.routes.keys()):
+            if router not in self.routes:
                 self.routes[router] = RouteTable()
             for port, con in value.items():
                 if len(con) > 1:
@@ -435,7 +436,7 @@ class Net:
                     + str(self.netdict[brg]["mask"])
                 )
                 for i in range(
-                    ip_to_int(portip.split("/")[0]),
+                    ip_to_int(portip.split("/", maxsplit=1)[0]),
                     ip_to_int(get_broadcast(portip)) - 1,
                 ):
                     if not self.check_ip_used(int_to_ip(i), brg):
@@ -527,9 +528,8 @@ class Net:
                         if visually and not check:
                             # print ERROR in red and bold if the connection fails
                             print(
-                                "lxc-attach -n {} -- ping -c 1 -W 1 {}".format(
-                                    startrouter, econ[1].split("/")[0]
-                                )
+                                f"lxc-attach -n {startrouter} -- "
+                                + "ping -c 1 -W 1 { econ[1].split(" / ")[0]}"
                             )
                             print(
                                 Fore.RED
@@ -561,27 +561,27 @@ class Net:
             os.system(command)
 
     def to_nxgraph(self):
-        G = nx.DiGraph()
+        graph = nx.DiGraph()
         for router, con in self.routers.items():
-            G.add_node(router)
+            graph.add_node(router)
             for port, conf in con.items():
                 if len(conf) == 1:
                     continue
-                brg = conf[0]
+                brg = conf["brg"]
                 for nextrouter in self.netdict[brg]["routers"]:
                     if nextrouter == router:
                         continue
                     neightport = self.get_router_port_from_brdg(nextrouter, brg)
                     if neightport is None:
                         continue
-                    G.add_edge(router, nextrouter, port=port, neightport=neightport)
-        return G
+                    graph.add_edge(router, nextrouter, port=port, neightport=neightport)
+        return graph
 
     def draw_graph(self):
-        G = self.to_nxgraph()
-        pos = nx.spring_layout(G)
+        graph = self.to_nxgraph()
+        pos = nx.spring_layout(graph)
         nx.draw(
-            G,
+            graph,
             pos,
             with_labels=True,
             node_color="skyblue",
@@ -589,8 +589,8 @@ class Net:
             width=1,
             alpha=0.7,
         )
-        edge_labels = nx.get_edge_attributes(G, "port")
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+        edge_labels = nx.get_edge_attributes(graph, "port")
+        nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels)
         plt.show()
 
     def check_routes(self):
