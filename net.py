@@ -8,7 +8,7 @@ from colorama import Fore, Style
 from matplotlib import pyplot as plt
 import networkx as nx
 
-# from rich.console import Console
+from rich.console import Console
 from route import RouteTable
 from ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
 from binmanipulation import getFirstSetBitPos
@@ -163,9 +163,13 @@ class Net:
                 else:
                     res[name] = {"brg": None}
             if "router ospf" in block:
+                Console().print(block)
                 if "ospf" not in res:
                     res["ospf"] = {}
                 for line in block.split("\n")[1:]:
+                    Console().print(line)
+                    if "network" not in line:
+                        continue
                     area = line.split("area ")[1].split("\n")[0]
                     net = line.split("network ")[1].split(" ")[0]
                     if area not in res["ospf"].keys():
@@ -196,12 +200,15 @@ class Net:
                     if router not in self.routers.keys():
                         self.routers[router] = {port: conf}
                     if len(conf) <= 1:
-                        self.routers[router][port]["brg"] = self.routers[router][port]["brg"]
-                    else:
-                        self.routers[router][port] = [
-                            self.routers[router][port][0],
-                            conf[1],
+                        self.routers[router][port]["brg"] = self.routers[router][port][
+                            "brg"
                         ]
+                    else:
+                        self.routers[router][port] = {
+                            "brg": self.routers[router][port]["brg"],
+                            "ip": conf["ip"],
+                        }
+
         self.netdict = self.generate_netdict(self.routers)
 
     def generate_routes(self, routers=None):
