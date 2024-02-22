@@ -12,6 +12,7 @@ from rich.layout import Layout
 from rich.pretty import Pretty
 
 from rich.columns import Columns
+import pandas as pd
 import os
 
 from net import Net
@@ -116,7 +117,7 @@ class TUI:
                 case "rr":
                     self.restart_run_scenario(scenario)
                 case "c":
-                    self.configure_scenario(scenario)
+                    self.configure_scenario()
                 case "sh":
                     self.show_scenario()
                 case "t":
@@ -158,6 +159,7 @@ class TUI:
             if id == "quit" or id == "q":
                 return
             id = int(id)
+            self.console.print("Selected: " + starts[id])
             os.system(starts[id])
             self.net.read_scenario_subconfigs(scenario, starts[id].split("-")[-1])
 
@@ -174,7 +176,7 @@ class TUI:
         self.console.print("Running scenario: " + scenario)
         if self.stype == "":
             self.console.print("Solver type not selected")
-            self.configure_scenario(scenario)
+            self.configure_scenario()
         match self.stype:
             case "static":
                 self.run_static(scenario)
@@ -185,7 +187,7 @@ class TUI:
             case "bgp":
                 self.run_bgp(scenario)
 
-    def configure_scenario(self, scenario):
+    def configure_scenario(self):
         self.console.print("Configure scenario")
         self.stype = Prompt.ask(
             "Select the type", choices=["static", "rip", "ospf", "bgp"]
@@ -339,19 +341,21 @@ class TUI:
         self.console.print("Show routers")
         columns = Columns(expand=True)
         for router, conf in self.net.routers.items():
-            table = Table(show_header=True, header_style="bold magenta")
-            table.add_column("Port")
-            table.add_column("IP Address")
-            table.add_column("brg")
-            for port, con in conf.items():
-                brg = con["brg"]
-                if len(con) > 1:
-                    ip = con["ip"]
-                else:
-                    ip = ""
-                table.add_row(port, ip, brg)
+            self.console.print(router)
+            self.console.print(conf)
+            tables = []
+            for sect, block in conf.items():
+                tables += [
+                    Table(show_header=True, title=sect, header_style="bold magenta")
+                ]
+                df = pd.DataFrame(block).T
+                for col in df.columns:
+                    tables[-1].add_column(col)
+                for row in df.iterrows():
+                    tables[-1].add_row(*row[1])
+
             columns.add_renderable(
-                Panel(table, title="[bold magenta]" + router + "[/bold magenta]")
+                Panel(*tables, title="[bold magenta]" + router + "[/bold magenta]")
             )
         self.console.print(columns)
 

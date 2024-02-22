@@ -56,7 +56,9 @@ class Net:
         """
         netdict = {}
         for router, value in routers.items():
-            for _, con in value.items():
+            Console().print(router)
+            Console().print(value)
+            for _, con in value["iface"].items():
                 brg = con["brg"]
                 if brg is None:
                     continue
@@ -106,7 +108,7 @@ class Net:
         utsname = text.split("lxc.uts.name = ")[1].split("\n")[0]
         # get the network configuration
         netconf = text.split("# Network configuration")[1].split("\n\n")
-        netcondict = {}
+        netcondict = {"iface": {}}
         # console = Console()
         # console.print("\n\n".join(netconf))
         for block in netconf:
@@ -122,16 +124,16 @@ class Net:
             if "address" in block:
                 # get the ip address
                 address = block.split("address = ")[1].split("\n")[0].strip()
-                netcondict[name] = {
+                netcondict["iface"][name] = {
                     "brg": brg,
                     "ip": address,
                 }
             else:
-                netcondict[name] = {"brg": brg}
+                netcondict["iface"][name] = {"brg": brg}
 
         return (utsname, netcondict)
 
-    def read_vtyshrc(self, contents: str) -> dict:
+    def read_vtyshrc(self, contents: str) -> Tuple[int, dict]:
         """example contents:
                 !
         interface eth0
@@ -151,19 +153,25 @@ class Net:
                 }
         """
         blocks = contents.split("!\n")[1:]
-        res = {}
+        res = {"iface": {}}
+        changes = 0
         for block in blocks:
             if "interface" in block:
                 name = block.split("interface ")[1].split("\n")[0]
+                res["iface"][name] = {}
                 if "ip address" in block:
                     address = block.split("ip address ")[1].split("\n")[0]
-                    res[name] = {"brg": None, "ip": address}
+                    res["iface"][name] = {"brg": None, "ip": address}
+                    changes += 1
                 if "ip ospf" in block:
-                    res[name]["ospf"] = block.split("ip ospf ")[1].split("\n")[0]
+                    res["iface"][name]["ospf"] = block.split("ip ospf ")[1].split("\n")[
+                        0
+                    ]
+                    changes += 1
                 else:
                     res[name] = {"brg": None}
+                    changes += 1
             if "router ospf" in block:
-                Console().print(block)
                 if "ospf" not in res:
                     res["ospf"] = {}
                 for line in block.split("\n")[1:]:
@@ -174,8 +182,9 @@ class Net:
                     net = line.split("network ")[1].split(" ")[0]
                     if area not in res["ospf"].keys():
                         res["ospf"][area] = net
+                        changes += 1
         Console().print(res)
-        return res
+        return changes, res
 
     def read_scenario_subconfigs(self, escenario: str, sub: str) -> "Net":
         path = "/home/api/practiques/" + escenario.split("-")[0] + "/" + escenario
@@ -194,32 +203,40 @@ class Net:
         for file in os.listdir(os.path.join(path, el)):
             if sub in file:
                 router = file.split("_")[1]
+                Console().print(router)
                 with open(os.path.join(path, el, file), "r", encoding="utf-8") as file:
                     contents = file.read()
-                res = self.read_vtyshrc(contents)
-                for port, conf in res.items():
+                ch, res = self.read_vtyshrc(contents)
+                if ch < 1:
+                    continue
+                for port, conf in res["iface"].items():
+                    Console().print(port)
+                    Console().print(conf)
+                    if len(conf) < 1:
+                        continue
                     if router not in self.routers.keys():
-                        self.routers[router] = {port: {"brg": conf["brg"]}}
+                        self.routers[router] = {"iface": {port: {"brg": conf["brg"]}}}
                     if port not in self.routers[router].keys():
-                        self.routers[router][port] = {"brg": conf["brg"]}
+                        self.routers[router]["iface"][port] = {"brg": conf["brg"]}
                     if len(conf) <= 1:
-                        self.routers[router][port]["brg"] = self.routers[router][port][
-                            "brg"
-                        ]
+                        self.routers[router]["iface"][port]["brg"] = self.routers[
+                            router
+                        ][port]["brg"]
                     else:
-                        self.routers[router][port] = {
-                            "brg": self.routers[router][port]["brg"],
+                        self.routers[router]["iface"][port] = {
+                            "brg": self.routers[router]["iface"][port]["brg"],
                             "ip": (
                                 conf["ip"]
                                 if conf["ip"] is not None
                                 else (
-                                    self.routers[router][port]["ip"]
-                                    if "ip" in self.routers[router][port]
+                                    self.routers[router]["iface"][port]["ip"]
+                                    if "ip" in self.routers[router]["iface"][port]
                                     else None
                                 )
                             ),
                         }
-
+                if "ospf" in res:
+                    self.routers[router]["ospf"] = res["ospf"]
         self.netdict = self.generate_netdict(self.routers)
 
     def generate_routes(self, routers=None):
@@ -228,7 +245,7 @@ class Net:
         for router, value in routers.items():
             if router not in self.routes:
                 self.routes[router] = RouteTable()
-            for port, con in value.items():
+            for port, con in value["iface"].items():
                 if len(con) > 1:
                     if con["brg"] in self.netdict.keys():
 
@@ -421,14 +438,14 @@ class Net:
         return self.netdict
 
     def get_router_port_from_brdg(self, router, brg):
-        for port, con in self.routers[router].items():
+        for port, con in self.routers[router]["iface"].items():
             if con["brg"] == brg:
                 return port
         return None
 
     def check_ip_used(self, ip, brg):
         for router in self.netdict[brg]["routers"]:
-            for _, con in self.routers[router].items():
+            for _, con in self.routers[router]["iface"].items():
                 if len(con) == 1:
                     continue
                 if con["brg"] != brg:
@@ -440,7 +457,7 @@ class Net:
     def assign_ips(self, apply=False):
         commands = []
         for router, value in self.routers.items():
-            for port, con in value.items():
+            for port, con in value["iface"].items():
                 if len(con) > 1:
                     continue
                 brg = con["brg"]
@@ -460,7 +477,7 @@ class Net:
                     if not self.check_ip_used(int_to_ip(i), brg):
                         portip = int_to_ip(i) + "/" + str(self.netdict[brg]["mask"])
                         break
-                self.routers[router][port]["ip"] = portip
+                self.routers[router]["iface"][port]["ip"] = portip
                 if apply:
                     commands.append(
                         f"lxc-attach -n {router} -- ip addr add {portip} dev {port}"
@@ -480,7 +497,7 @@ class Net:
             # print(router)
             con = self.routers[router]
             # print(self.routes[router].format_table())
-            for _, conf in con.items():
+            for _, conf in con["iface"].items():
                 if len(conf) == 1:
                     continue
                 brg = conf[0]
@@ -504,7 +521,7 @@ class Net:
                                         "Type": "S",
                                         "Destination": (route["Destination"]),
                                         "Cost": 0,
-                                        "NextHop": conf[1],
+                                        "NextHop": conf["ip"],
                                         "Interface": neightport,
                                         "Mask": route["Mask"],
                                         "Selected": True,
@@ -538,21 +555,21 @@ class Net:
             for j, (endrouter, endvalue) in enumerate(self.routers.items()):
                 # if startrouter == endrouter:
                 #     continue
-                for _, econ in endvalue.items():
+                for _, econ in endvalue["iface"].items():
                     if len(econ) > 1:
                         check = self.check_connection(
-                            startrouter, econ[1].split("/")[0]
+                            startrouter, econ["ip"].split("/")[0]
                         )
                         if visually and not check:
                             # print ERROR in red and bold if the connection fails
                             print(
                                 f"lxc-attach -n {startrouter} -- "
-                                + "ping -c 1 -W 1 { econ[1].split(" / ")[0]}"
+                                + f"ping -c 1 -W 1 { econ['ip'].split('/')[0]}"
                             )
                             print(
                                 Fore.RED
                                 + Style.BRIGHT
-                                + f"ERROR: {startrouter} -> {endrouter} {econ[1].split('/')[0]}"
+                                + f"ERROR: {startrouter} -> {endrouter} {econ['ip'].split('/')[0]}"
                                 + Style.RESET_ALL
                             )
                         # elif visually:
@@ -563,7 +580,7 @@ class Net:
                         #         + Style.RESET_ALL
                         #     )
                         res[i, j] += int(check)
-                res[i, j] = res[i, j] // (len(endvalue.keys()))
+                res[i, j] = res[i, j] // (len(endvalue["iface"].keys()))
         pprint(res)
         return np.float64(np.sum(res)), np.float64(len(self.routers.keys()) ** 2)
 
@@ -582,7 +599,7 @@ class Net:
         graph = nx.DiGraph()
         for router, con in self.routers.items():
             graph.add_node(router)
-            for port, conf in con.items():
+            for port, conf in con["iface"].items():
                 if len(conf) == 1:
                     continue
                 brg = conf["brg"]
