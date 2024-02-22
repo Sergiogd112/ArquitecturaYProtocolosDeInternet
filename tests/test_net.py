@@ -535,7 +535,7 @@ def test_read_scenario(net):
         pprint(router)
         pprint(dev)
         pprint(net2.routers[router])
-        for port, brdg in dev.items():
+        for port, _ in dev.items():
             assert net.routers[router][port] == net2.routers[router][port]
     for brg, info in net.netdict.items():
         pprint(brg)
