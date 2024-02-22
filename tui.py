@@ -348,12 +348,16 @@ class TUI:
             self.console.print(conf)
             tables = []
             for sect, block in conf.items():
+                Console().print(sect)
+                Console().print(block)
                 tables += [
                     Table(show_header=True, title=sect, header_style="bold magenta")
                 ]
+                
                 df = pd.DataFrame(block).T
                 for col in df.columns:
                     tables[-1].add_column(col)
+                
                 for row in df.iterrows():
                     tables[-1].add_row(*row[1])
 

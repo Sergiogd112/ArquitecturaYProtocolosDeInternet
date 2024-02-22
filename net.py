@@ -173,7 +173,7 @@ class Net:
                     changes += 1
             if "router ospf" in block:
                 if "ospf" not in res:
-                    res["ospf"] = {}
+                    res["ospf"] = []
                 for line in block.split("\n")[1:]:
                     Console().print(line)
                     if "network" not in line:
@@ -181,7 +181,7 @@ class Net:
                     area = line.split("area ")[1].split("\n")[0]
                     net = line.split("network ")[1].split(" ")[0]
                     if area not in res["ospf"].keys():
-                        res["ospf"][area] = net
+                        res["ospf"] += [{"area": area, "network": net}]
                         changes += 1
         Console().print(res)
         return changes, res
