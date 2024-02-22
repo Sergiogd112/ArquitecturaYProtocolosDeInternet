@@ -214,8 +214,12 @@ class Net:
                     Console().print(conf)
                     if len(conf) < 1:
                         continue
+
                     if router not in self.routers.keys():
                         self.routers[router] = {"iface": {port: {"brg": conf["brg"]}}}
+                    if "ospf" in res:
+                        self.routers[router]["iface"][port]["ospf"] = res["ospf"]
+                        continue
                     if port not in self.routers[router].keys():
                         self.routers[router]["iface"][port] = {"brg": conf["brg"]}
                     if len(conf) <= 1:

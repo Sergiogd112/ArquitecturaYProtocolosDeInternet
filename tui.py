@@ -162,6 +162,9 @@ class TUI:
             self.console.print("Selected: " + starts[id])
             os.system(starts[id])
             self.net.read_scenario_subconfigs(scenario, starts[id].split("-")[-1])
+            self.show_routers()
+            self.show_bridges()
+            self.show_routes()
 
     def stop_scenario(self, scenario):
         self.console.print("Stopping scenario: " + scenario)
