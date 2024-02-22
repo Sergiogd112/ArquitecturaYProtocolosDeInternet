@@ -56,7 +56,7 @@ class Net:
         netdict = {}
         for router, value in routers.items():
             for _, con in value.items():
-                brg = con[0]
+                brg = con["brg"]
                 if brg is None:
                     continue
                 if not (brg in netdict.keys()):
@@ -66,8 +66,8 @@ class Net:
                     netdict[brg]["routers"] = sorted(netdict[brg]["routers"])
                     netdict[brg]["devcount"] += 1
                 if len(con) > 1:
-                    netdict[brg]["netip"] = get_net_ip(con[1])
-                    netdict[brg]["mask"] = int(con[1].split("/")[1])
+                    netdict[brg]["netip"] = get_net_ip(con["ip"])
+                    netdict[brg]["mask"] = int(con["ip"].split("/")[1])
                     netdict[brg]["maxdevices"] = 2 ** (32 - netdict[brg]["mask"])
         return netdict
 
@@ -403,7 +403,7 @@ class Net:
 
     def get_router_port_from_brdg(self, router, brg):
         for port, con in self.routers[router].items():
-            if con[0] == brg:
+            if con["brg"] == brg:
                 return port
         return None
 
@@ -412,9 +412,9 @@ class Net:
             for _, con in self.routers[router].items():
                 if len(con) == 1:
                     continue
-                if con[0] != brg:
+                if con["brg"] != brg:
                     continue
-                if ip in con[1]:
+                if ip in con["ip"]:
                     return True
         return False
 
@@ -424,7 +424,7 @@ class Net:
             for port, con in value.items():
                 if len(con) > 1:
                     continue
-                brg = con[0]
+                brg = con["brg"]
                 portip = (
                     int_to_ip(
                         ip_to_int(self.netdict[brg]["netip"])

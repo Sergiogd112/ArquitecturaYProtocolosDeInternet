@@ -5,11 +5,14 @@ from pprint import pprint
 import pandas as pd
 from mytty import get_tty_width
 from rich.console import Console
+
+
 # from rich.syntax import Syntax
 # from rich.table import Table
 @fixture
 def netlxc():
     return Net.read_scenario("P01-E01")
+
 
 def test_generate_netdict(netlxc):
     assert netlxc.netdict == {
@@ -187,29 +190,29 @@ def test_assign_ips(netlxc):
     netlxc.assign_ips()
     expected = {
         "R01": {
-            "eth0": ["br01", "10.0.0.129/26"],
-            "eth1": ["br02", "10.0.0.193/27"],
-            "eth2": ["br03", "10.0.0.225/28"],
+            "eth0": {"brg": "br01", "ip": "10.0.0.129/26"},
+            "eth1": {"brg": "br02", "ip": "10.0.0.193/27"},
+            "eth2": {"brg": "br03", "ip": "10.0.0.225/28"},
         },
         "R02": {
-            "eth0": ["br03", "10.0.0.226/28"],
-            "eth1": ["br05", "10.0.0.241/29"],
-            "eth2": ["br04", "10.0.0.249/29"],
+            "eth0": {"brg": "br03", "ip": "10.0.0.226/28"},
+            "eth1": {"brg": "br05", "ip": "10.0.0.241/29"},
+            "eth2": {"brg": "br04", "ip": "10.0.0.249/29"},
         },
         "R03": {
-            "eth0": ["br05", "10.0.0.242/29"],
-            "eth1": ["br08", "10.0.0.97/28"],
-            "eth2": ["br06", "10.0.0.113/29"],
+            "eth0": {"brg": "br05", "ip": "10.0.0.242/29"},
+            "eth1": {"brg": "br08", "ip": "10.0.0.97/28"},
+            "eth2": {"brg": "br06", "ip": "10.0.0.113/29"},
         },
         "R04": {
-            "eth0": ["br08", "10.0.0.98/28"],
-            "eth1": ["br09", "10.0.0.1/26"],
-            "eth2": ["br07", "10.0.0.65/27"],
+            "eth0": {"brg": "br08", "ip": "10.0.0.98/28"},
+            "eth1": {"brg": "br09", "ip": "10.0.0.1/26"},
+            "eth2": {"brg": "br07", "ip": "10.0.0.65/27"},
         },
         "R05": {
-            "eth0": ["br04", "10.0.0.250/29"],
-            "eth1": ["br06", "10.0.0.114/29"],
-            "eth2": ["br10", "10.0.0.121/29"],
+            "eth0": {"brg": "br04", "ip": "10.0.0.250/29"},
+            "eth1": {"brg": "br06", "ip": "10.0.0.114/29"},
+            "eth2": {"brg": "br10", "ip": "10.0.0.121/29"},
         },
     }
     pprint(netlxc.routers)
@@ -363,7 +366,7 @@ def test_generate_routes(netlxc):
             }
         ),
     }
-    console=Console()
+    console = Console()
     for router, routes in netlxc.routes.items():
         print("===" * 20)
         print("===" * 20)
@@ -373,7 +376,9 @@ def test_generate_routes(netlxc):
         expected[router] = (
             expected[router]
             .assign(intip=expected[router]["Destination"].apply(ip_to_int))
-            .sort_values(by=["intip", "Mask"], ascending=[True, False], ignore_index=True)
+            .sort_values(
+                by=["intip", "Mask"], ascending=[True, False], ignore_index=True
+            )
             .drop(columns=["intip"])
         )
         for col in routes.table.columns:
@@ -422,7 +427,11 @@ lxc.net.2.veth.pair = R01-eth2
     """
     router, conf = Net.lxc_to_router(content)
     assert router == "R01"
-    assert conf == {"eth0": ["br01"], "eth1": ["br02"], "eth2": ["br03"]}
+    assert conf == {
+        "eth0": {"brg": "br01"},
+        "eth1": {"brg": "br02"},
+        "eth2": {"brg": "br03"},
+    }
 
 
 def test_lxc_to_router_R03():
@@ -466,9 +475,9 @@ lxc.net.2.veth.pair = R03-eth2
     router, conf = Net.lxc_to_router(content)
     assert router == "R03"
     assert conf == {
-        "eth0": ["br05", "10.0.0.250/29"],
-        "eth1": ["br08", "10.0.0.97/28"],
-        "eth2": ["br06", "10.0.0.113/29"],
+        "eth0": {"brg": "br05", "ip": "10.0.0.250/29"},
+        "eth1": {"brg": "br08","ip": "10.0.0.97/28"},
+        "eth2": {"brg": "br06","ip": "10.0.0.113/29"},
     }
 
 
