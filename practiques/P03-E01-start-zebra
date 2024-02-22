@@ -1,0 +1,24 @@
+#!/bin/bash
+count_dirs () {
+    dir=$1   
+    regexp=$2
+    wc -l < <( awk '{print $NF}' < <(ls -l $dir) | grep -P $regexp )
+}
+if [[ ("$#" -eq 0 ) || ("$#" -eq 1 && $1 == "all") ]]; then
+routers=$(count_dirs "/var/lib/lxc/" "^R[0-9]{2}$")
+pcs=$(count_dirs "/var/lib/lxc/" "^PC[0-9]{2}$")
+05-stop-containers $routers $pcs
+06-clean-quagga-files $routers
+if [ "$#" -eq 0 ]; then
+    02-copy-files 6 /home/api/practiques/P03/P03-E01/config_files_zebra_$(printf "PC%d" 1) z
+elif [ "$#" -eq 1 ]; then
+    02-copy-files 6 /home/api/practiques/P03/P03-E01-backup/config_files_zebra_$(printf "PC%d" 1) z
+fi
+03-create-bridges 8
+04-start-containers 6
+04-rp-filter 6
+echo "Done!"
+else
+    echo "error a l'introduir els paràmetres"
+fi
+

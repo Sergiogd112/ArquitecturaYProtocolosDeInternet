@@ -1,0 +1,12 @@
+#!/bin/bash
+if [ ! -d /home/api/router_files ]
+ then mkdir /home/api/router_files
+fi
+for ((i=1; i<=11; i++))
+    do folder=/home/api/router_files/$(printf "R%02d" $i)
+       if [ ! -d $folder ] 
+          then mkdir /home/api/router_files/$(printf "R%02d" $i)
+       fi
+done
+cp /home/api/practiques/P03/db/*.txt /home/api/router_files
+rm -r /home/api/practiques/P03/db

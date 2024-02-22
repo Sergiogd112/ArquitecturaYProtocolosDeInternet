@@ -1,0 +1,43 @@
+#!/bin/bash
+total=$1
+for ((i=1; i<=$total; i++))
+    do cp $2/config_$(printf "R%02d" $i) /var/lib/lxc/$(printf "R%02d" $i)/config
+done
+
+if [ "$#" -eq 3 ]; then
+	if [[ $3 == z ]]; then 
+		for ((i=1; i<=$total; i++)); do
+			if [ -f $2/zebra.conf_$(printf "R%02d" $i) ]; then
+				cp  $2/zebra.conf_$(printf "R%02d" $i) /var/lib/lxc/$(printf "R%02d" $i)/rootfs/etc/quagga/zebra.conf
+			fi
+		done
+	fi
+        if [[ $3 == r ]]; then 
+                for ((i=1; i<=$total; i++)); do
+			if [ -f $2/ripd.conf_$(printf "R%02d" $i) ]; then
+                        	cp $2/ripd.conf_$(printf "R%02d" $i) /var/lib/lxc/$(printf "R%02d" $i)/rootfs/etc/quagga/ripd.conf
+			fi
+                done
+        fi
+        if [[ $3 == o ]]; then 
+                for ((i=1; i<=$total; i++)); do 
+			if [ -f $2/ospfd.conf_$(printf "R%02d" $i) ]; then
+	                        cp $2/ospfd.conf_$(printf "R%02d" $i) /var/lib/lxc/$(printf "R%02d" $i)/rootfs/etc/quagga/ospfd.conf
+			fi
+                done
+        fi
+        if [[ $3 == b ]]; then 
+                for ((i=1; i<=$total; i++)); do
+			if [ -f $2/bgpd.conf_$(printf "R%02d" $i) ]; then
+                        	cp $2/bgpd.conf_$(printf "R%02d" $i) /var/lib/lxc/$(printf "R%02d" $i)/rootfs/etc/quagga/bgpd.conf
+			fi
+                done
+        fi
+        if [[ $3 == o6 ]]; then 
+                for ((i=1; i<=$total; i++)); do
+			if [ -f $2/ospf6d.conf_$(printf "R%02d" $i) ]; then
+                        	cp $2/ospf6d.conf_$(printf "R%02d" $i) /var/lib/lxc/$(printf "R%02d" $i)/rootfs/etc/quagga/ospf6d.conf
+			fi
+                done
+        fi
+fi

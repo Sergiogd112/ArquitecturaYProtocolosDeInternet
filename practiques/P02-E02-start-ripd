@@ -1,0 +1,29 @@
+#!/bin/bash
+num_routers=15
+num_pcs=9
+num_bridges=36
+folder=P02/P02-E02
+
+if [[ ("$#" -eq 0 ) || ("$#" -eq 1 && $1 == "all") ]]; then
+if [ "$#" -eq 0 ]; then
+     02-copy-files $num_routers /home/api/practiques/$folder/config_files_zebra_$(printf "PC%d" 1) r
+     02-copy-files-PCs $num_pcs /home/api/practiques/$folder/config_files_zebra_$(printf "PC%d" 1) r
+elif [ "$#" -eq 1 ]; then
+     02-copy-files $num_routers /home/api/practiques/$folder-backup/config_files_zebra_$(printf "PC%d" 1) r
+     02-copy-files-PCs $num_pcs /home/api/practiques/$folder/config_files_zebra_$(printf "PC%d" 1) r
+fi
+sysctl -w fs.inotify.max_user_instances=1024
+for ((i=1; i<=$num_routers; i++))
+    do lxc-attach -n $(printf "R%02d" $i) -- systemctl start ripd
+       echo Starting ripd in $(printf "R%02d" $i) .............
+done
+for ((i=1; i<=$num_pcs; i++))
+    do lxc-attach -n $(printf "PC%02d" $i) -- systemctl start ripd
+       echo Starting ripd in $(printf "PC%02d" $i) .............
+done
+echo "Done!"
+else
+     echo "error a l'introduir els paràmetres"
+fi
+
+

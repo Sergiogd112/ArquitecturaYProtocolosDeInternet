@@ -1,0 +1,17 @@
+#!/bin/bash
+if [[ ("$#" -eq 0 ) || ("$#" -eq 1 && $1 == "all") ]]; then
+if [ "$#" -eq 0 ]; then
+    02-copy-files 6 /home/api/practiques/P03/P03-E01/config_files_zebra_$(printf "PC%d" 1) o
+elif [ "$#" -eq 1 ]; then
+    02-copy-files 6 /home/api/practiques/P03/P03-E01-backup/config_files_zebra_$(printf "PC%d" 1) o
+fi
+sysctl -w fs.inotify.max_user_instances=1024
+for ((i=1; i<=6; i++))
+    do lxc-attach -n $(printf "R%02d" $i) -- systemctl start ospfd
+       echo Starting ospfd in $(printf "R%02d" $i) .............
+done
+echo "Done!"
+else
+     echo "error a l'introduir els paràmetres"
+fi
+

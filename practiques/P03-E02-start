@@ -1,0 +1,6 @@
+#!/bin/bash
+P03-E02-start-zebra
+echo ""
+P03-E02-start-ospfd
+echo ""
+

@@ -1,0 +1,6 @@
+#!/bin/bash
+P02-E02-start-zebra
+echo ""
+P02-E02-start-ripd
+echo ""
+

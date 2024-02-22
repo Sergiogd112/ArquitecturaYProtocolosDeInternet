@@ -1,0 +1,22 @@
+#!/bin/bash
+num_routers=15
+num_pcs=9
+if [ ! -d /home/api/router_files ]
+ then mkdir /home/api/router_files
+fi
+systemctl start ssh
+for ((i=1; i<=$num_routers; i++))
+    do folder=/home/api/router_files/$(printf "R%02d" $i)
+       if [ ! -d $folder ] 
+          then mkdir /home/api/router_files/$(printf "R%02d" $i)
+       fi
+       cp /home/api/practiques/P02/scripts/monitor_show-ip-rip /var/lib/lxc/$(printf "R%02d" $i)/rootfs/usr/local/bin   
+done
+for ((i=1; i<=$num_pcs; i++))
+    do folder=/home/api/router_files/$(printf "PC%02d" $i)
+       if [ ! -d $folder ] 
+          then mkdir /home/api/router_files/$(printf "PC%02d" $i)
+       fi
+       cp /home/api/practiques/P02/scripts/monitor_show-ip-rip /var/lib/lxc/$(printf "PC%02d" $i)/rootfs/usr/local/bin   
+done
+

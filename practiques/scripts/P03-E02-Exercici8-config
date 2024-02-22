@@ -1,0 +1,91 @@
+#!/bin/bash
+echo ""
+echo "----------------------------------------------------------"
+echo "Configuració de bridges"
+echo "----------------------------------------------------------"
+plug-if-br R08-eth2 br27
+plug-if-br PC04-eth0 br27
+plug-if-br PC04-eth1 br28
+plug-if-br PC04-eth2 br31
+plug-if-br PC05-eth0 br28
+plug-if-br PC05-eth1 br29
+plug-if-br PC06-eth0 br29
+plug-if-br PC06-eth1 br32
+plug-if-br PC06-eth2 br33
+plug-if-br PC07-eth0 br29
+plug-if-br PC07-eth1 br30
+plug-if-br R11-eth3 br30
+echo "root@api-mv:~# brctl show"
+brctl show
+echo ""
+read -n 1 -s -r -p "Press any key to continue"
+echo ""
+echo "----------------------------------------------------------"
+echo "Configuració adreces IP als routers de l'àrea 0.0.0.3"
+echo "----------------------------------------------------------"
+lxc-attach -n R08 -- vtysh -c 'conf term' -c 'interface eth2' -c 'ip address 10.0.3.1/27'
+echo ""
+echo "lxc-attach -n R08 -- vtysh -c 'show run'"
+lxc-attach -n R08 -- vtysh -c 'show run'
+echo ""
+lxc-attach -n PC04 -- vtysh -c 'conf term' -c 'interface eth0' -c 'ip address 10.0.3.2/27' -c 'interface eth1' -c 'ip address 10.0.3.65/27' -c 'interface eth2' -c 'ip address 10.0.3.33/27'
+echo ""
+echo "lxc-attach -n PC04 -- vtysh -c 'show run'"
+lxc-attach -n PC04 -- vtysh -c 'show run'
+echo ""
+lxc-attach -n PC05 -- vtysh -c 'conf term' -c 'interface eth0' -c 'ip address 10.0.3.66/27' -c 'interface eth1' -c 'ip address 10.0.3.97/27'
+echo ""
+echo "lxc-attach -n PC05 -- vtysh -c 'show run'"
+lxc-attach -n PC05 -- vtysh -c 'show run'
+echo ""
+lxc-attach -n PC06 -- vtysh -c 'conf term' -c 'interface eth0' -c 'ip address 10.0.3.98/27' -c 'interface eth1' -c 'ip address 10.0.3.129/27' -c 'interface eth2' -c 'ip address 10.0.3.161/27'
+echo ""
+echo "lxc-attach -n PC06 -- vtysh -c 'show run'"
+lxc-attach -n PC06 -- vtysh -c 'show run'
+echo ""
+lxc-attach -n PC07 -- vtysh -c 'conf term' -c 'interface eth0' -c 'ip address 10.0.3.99/27' -c 'interface eth1' -c 'ip address 10.0.3.193/27'
+echo ""
+echo "lxc-attach -n PC07 -- vtysh -c 'show run'"
+lxc-attach -n PC07 -- vtysh -c 'show run'
+echo ""
+lxc-attach -n R11 -- vtysh -c 'conf term' -c 'interface eth3' -c 'ip address 10.0.3.194/27'
+echo ""
+echo "lxc-attach -n R11 -- vtysh -c 'show run'"
+lxc-attach -n R11 -- vtysh -c 'show run'
+echo ""
+echo ""
+read -n 1 -s -r -p "Press any key to continue"
+echo ""
+echo "----------------------------------------------------------"
+echo "Configuració OSPF dels routers de l'àrea 0.0.0.3"
+echo "----------------------------------------------------------"
+lxc-attach -n R08 -- vtysh -c 'conf term' -c 'router ospf' -c 'router-id 10.0.3.1' -c 'network 10.0.3.0/27 area 0.0.0.3' -c 'area 0.0.0.3 range 10.0.3.0/24'
+echo ""
+echo "lxc-attach -n R08 -- vtysh -c 'show run'"
+lxc-attach -n R08 -- vtysh -c 'show run'
+echo ""
+lxc-attach -n PC04 -- vtysh -c 'conf term' -c 'router ospf' -c 'router-id 10.0.3.65' -c 'network 10.0.3.0/27 area 0.0.0.3' -c 'network 10.0.3.32/27 area 0.0.0.3' -c 'network 10.0.3.64/27 area 0.0.0.3' -c 'exit' -c 'interface eth2' -c 'ip ospf cost 30'
+echo ""
+echo "lxc-attach -n PC04 -- vtysh -c 'show run'"
+lxc-attach -n PC04 -- vtysh -c 'show run'
+echo ""
+lxc-attach -n PC05 -- vtysh -c 'conf term' -c 'router ospf' -c 'router-id 10.0.3.97' -c 'network 10.0.3.64/27 area 0.0.0.3' -c 'network 10.0.3.96/27 area 0.0.0.3'
+echo ""
+echo "lxc-attach -n PC05 -- vtysh -c 'show run'"
+lxc-attach -n PC05 -- vtysh -c 'show run'
+echo ""
+lxc-attach -n PC06 -- vtysh -c 'conf term' -c 'router ospf' -c 'router-id 10.0.3.161' -c 'network 10.0.3.96/27 area 0.0.0.3' -c 'network 10.0.3.160/27 area 0.0.0.3' -c 'network 10.0.3.128/27 area 0.0.0.3'
+echo ""
+echo "lxc-attach -n PC06 -- vtysh -c 'show run'"
+lxc-attach -n PC06 -- vtysh -c 'show run'
+echo ""
+lxc-attach -n PC07 -- vtysh -c 'conf term' -c 'router ospf' -c 'router-id 10.0.3.193' -c 'network 10.0.3.192/27 area 0.0.0.3' -c 'network 10.0.3.96/27 area 0.0.0.3' -c 'exit' -c 'interface eth1' -c 'ip ospf cost 20'
+echo ""
+echo "lxc-attach -n PC07 -- vtysh -c 'show run'"
+lxc-attach -n PC07 -- vtysh -c 'show run'
+echo ""
+lxc-attach -n R11 -- vtysh -c 'conf term' -c 'router ospf' -c 'router-id 10.0.3.194' -c 'network 10.0.3.192/27 area 0.0.0.3' -c 'area 0.0.0.0 range 10.0.0.0/24' -c 'area 0.0.0.3 range 10.0.3.0/24'
+echo ""
+echo "lxc-attach -n R11 -- vtysh -c 'show run'"
+lxc-attach -n R11 -- vtysh -c 'show run'
+echo ""

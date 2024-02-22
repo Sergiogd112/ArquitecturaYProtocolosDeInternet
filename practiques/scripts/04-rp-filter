@@ -1,0 +1,32 @@
+#!/bin/bash
+total=$1
+for ((i=1; i<=$total; i++)); do 
+    lxc-attach -n $(printf "R%02d" $i) -- bash -c "echo 0 > /proc/sys/net/ipv4/conf/all/rp_filter"
+    lxc-attach -n $(printf "R%02d" $i) -- bash -c "echo 0 > /proc/sys/net/ipv4/conf/default/rp_filter"
+    array_test=()
+    for iface in $(lxc-attach -n $(printf "R%02d" $i) -- bash -c "ifconfig | cut -d ' ' -f1| tr ':' '\n' | awk NF")
+    do  if [ "$iface" != "lo" ]; then 
+            array_test+=("$iface")
+        fi
+    done
+    for j in "${array_test[@]}"; do
+        lxc-attach -n $(printf "R%02d" $i) -- bash -c "echo 0 > /proc/sys/net/ipv4/conf/$j/rp_filter"
+    done 
+done
+if [ "$#" -eq 2 ]; then
+    total=$2
+    for ((i=1; i<=$total; i++)); do 
+        lxc-attach -n $(printf "PC%02d" $i) -- bash -c "echo 0 > /proc/sys/net/ipv4/conf/all/rp_filter"
+	lxc-attach -n $(printf "PC%02d" $i) -- bash -c "echo 0 > /proc/sys/net/ipv4/conf/default/rp_filter"
+        array_test=()
+        for iface in $(lxc-attach -n $(printf "PC%02d" $i) -- bash -c "ifconfig | cut -d ' ' -f1| tr ':' '\n' | awk NF")
+        do  if [ "$iface" != "lo" ]; then 
+                array_test+=("$iface")
+            fi
+        done
+        for j in "${array_test[@]}"; do
+            lxc-attach -n $(printf "PC%02d" $i) -- bash -c "echo 0 > /proc/sys/net/ipv4/conf/$j/rp_filter"
+        done 
+    done
+fi
+
