@@ -196,7 +196,7 @@ class Net:
                     if router not in self.routers.keys():
                         self.routers[router] = {port: conf}
                     if len(conf) <= 1:
-                        self.routers[router][port] = [self.routers[router][port][0]]
+                        self.routers[router][port]["brg"] = self.routers[router][port]["brg"]
                     else:
                         self.routers[router][port] = [
                             self.routers[router][port][0],
