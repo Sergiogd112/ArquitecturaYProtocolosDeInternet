@@ -1,0 +1,20 @@
+#!/bin/bash
+total=$1
+for ((i=1; i<=$total; i++)); do
+	var=$(lxc-info -n $(printf "R%02d" $i) | grep State: | awk '{print $2}')
+	if [ $var == "RUNNING" ]; then
+		lxc-stop -n $(printf "R%02d" $i)
+		echo Stopping $(printf "R%02d" $i) .............
+	fi
+done
+if [ "$#" -eq 2 ]; then
+	total=$2
+	for ((i=1; i<=$total; i++)); do
+   		var=$(lxc-info -n $(printf "PC%02d" $i) | grep State: | awk '{print $2}')
+		if [ $var == "RUNNING" ]; then
+			lxc-stop -n $(printf "PC%02d" $i) 
+         		echo Stopping $(printf "PC%02d" $i) .............
+		fi
+	done
+fi
+

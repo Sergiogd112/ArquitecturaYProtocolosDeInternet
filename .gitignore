@@ -22,3 +22,9 @@ go.work
 *.pyc
 # exclude all the .tar.gz files in the lxc directory but include the ones in the subdirectories
 lxc/*.tar.gz
+apps/jetbrains-toolbox-2.2.1.19765.tar.gz
+dist/resolvedor de api-0.0.1.tar.gz
+*.pyc
+__pycache__/
+lxc_split/
+.pytest_cache/

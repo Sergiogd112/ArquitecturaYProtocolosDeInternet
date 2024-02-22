@@ -1,0 +1,14 @@
+#!/bin/bash
+if [ ! -d /home/api/router_files ]
+ then mkdir /home/api/router_files
+fi
+systemctl start ssh
+for ((i=1; i<=12; i++))
+    do 
+       folder=/home/api/router_files/$(printf "R%02d" $i)
+       if [ ! -d $folder ] 
+          then mkdir /home/api/router_files/$(printf "R%02d" $i)
+       fi
+       cp /home/api/practiques/P01/scripts/monitor_show-ip-rip /var/lib/lxc/$(printf "R%02d" $i)/rootfs/usr/local/bin   
+done
+

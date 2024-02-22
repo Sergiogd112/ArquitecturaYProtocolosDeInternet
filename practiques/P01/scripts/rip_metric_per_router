@@ -1,0 +1,40 @@
+#!/bin/bash
+ROUTER_FILES_DIR="/home/api/router_files/"
+RIB_RIP_NAME="/taula_rip.txt"
+METRICS_FILE=$ROUTER_FILES_DIR$2
+
+for i in $(eval echo {1..$1})
+do
+    lxc-attach -n $(printf "R%02d" $i) -- vtysh -c "sh ip rip" > $ROUTER_FILES_DIR$(printf "R%02d" $i)$RIB_RIP_NAME
+    more $ROUTER_FILES_DIR$(printf "R%02d" $i)$RIB_RIP_NAME | grep "C(i)\|R(n)" > $ROUTER_FILES_DIR$(printf "R%02d" $i)"/dc.txt"
+    awk 'NR=1 {print $2}' $ROUTER_FILES_DIR$(printf "R%02d" $i)"/dc.txt" >> all_networks.txt
+    rm $ROUTER_FILES_DIR$(printf "R%02d" $i)"/dc.txt"
+done
+
+networks=$(sort -V all_networks.txt | uniq)
+rm all_networks.txt
+network_array=(`echo $networks | sed 's/ /\n/g'`) 
+
+printf "%-20s" "PREFIX" > $METRICS_FILE
+for i in $(eval echo {1..$1})
+do
+    printf "%-4s" $(printf "R%02d" $i) >> $METRICS_FILE 
+done
+printf "\n" >> $METRICS_FILE
+
+for network in "${network_array[@]}"
+do
+    printf "%-20s" $network >> $METRICS_FILE
+    for i in $(eval echo {1..$1})
+    do
+        metric=$(more $ROUTER_FILES_DIR$(printf "R%02d" $i)$RIB_RIP_NAME | grep $network | awk 'NR=1 {print $4}')
+        if [ -z "$metric" ]; then
+            printf "%-4s" "-" >> $METRICS_FILE
+        else
+            printf "%-4s" $metric >> $METRICS_FILE
+        fi
+    done 
+    printf "\n" >> $METRICS_FILE
+done
+
+more $METRICS_FILE

@@ -1,0 +1,40 @@
+# Template used to create this container: /usr/share/lxc/templates/lxc-download
+# Parameters passed to the template: -d ubuntu -r bionic -a amd64
+# Template script checksum (SHA-1): 9748088977ba845f625e45659f305a5395c2dc7b
+# For additional config options, please look at lxc.container.conf(5)
+# Uncomment the following line to support nesting containers:
+#lxc.include = /usr/share/lxc/config/nesting.conf
+# (Be aware this has security implications)
+# Distribution configuration
+lxc.include = /usr/share/lxc/config/ubuntu.common.conf
+lxc.arch = linux64
+# Container specific configuration
+lxc.rootfs = /var/lib/lxc/R01/rootfs
+lxc.rootfs.backend = dir
+lxc.utsname = R01
+# Network configuration
+lxc.network.type = veth
+lxc.network.link = br01
+lxc.network.flags = up
+lxc.network.name = eth0
+lxc.network.ipv4 = 10.0.0.129/26
+lxc.network.veth.pair = R01-eth0 
+
+lxc.network.type = veth
+lxc.network.link = br02
+lxc.network.flags = up
+lxc.network.name = eth1
+lxc.network.ipv4 = 10.0.0.193/27
+lxc.network.veth.pair = R01-eth1 
+
+lxc.network.type = veth
+lxc.network.link = br03
+lxc.network.flags = up
+lxc.network.name = eth2
+lxc.network.ipv4 = 10.0.0.225/28
+lxc.network.veth.pair = R01-eth2
+
+
+
+
+ 

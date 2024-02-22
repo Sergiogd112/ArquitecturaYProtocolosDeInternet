@@ -1,0 +1,34 @@
+unset key
+set encoding utf8
+set term png
+
+index = strstrt(ARG3,".txt")
+file_name = substr(ARG3,0,index-1)
+
+png_output='/home/api/router_files/'.ARG2.'/'.file_name.'.png'
+filtered='/home/api/router_files/'.ARG2.'/'.ARG3
+
+set output png_output
+
+set multiplot layout 2,1
+set grid
+
+# Plot timers
+plot_title = 'Evolució del temporitzador de la ruta cap a '.ARG1.' de '.ARG2
+
+set title plot_title
+set ylabel 'Valor del temporitzador [M:S]'
+
+set ydata time
+set timefmt "%M:%S"
+set yrange ["00:00":"03:00"]
+plot filtered u :7 w l
+
+# Plot cost
+plot_title = 'Evolució del cost de la ruta cap a '.ARG1.' de '.ARG2
+set title plot_title
+set ylabel 'Cost [nombre de salts]'
+
+unset ydata
+set yrange [1:16]
+plot filtered u :4 w l

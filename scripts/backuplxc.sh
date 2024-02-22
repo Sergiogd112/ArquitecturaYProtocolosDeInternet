@@ -7,6 +7,7 @@ for container in $(ls $lxcpath); do
         # stop the container
         lxc-stop -n $container
     fi
+    cd $lxcpath
     # create a backup of the container
-   tar --numeric-owner -czvf $backuppath/$container.tar.gz $lxcpath/$container
+   tar --numeric-owner -czvf $backuppath/$container.tar.gz $container
 done

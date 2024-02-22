@@ -1,0 +1,34 @@
+unset key
+set encoding utf8
+
+set multiplot layout 2,1
+set grid
+
+# Plot timers
+index = strstrt(ARG1,"/")
+netid = substr(ARG1,0,index-1)
+mask = substr(ARG1,index+1, strlen(ARG1))
+
+plot_title = 'Evolució del temporitzador de la ruta cap a '.ARG1.' de '.ARG2
+filtered='/home/api/router_files/'.ARG2.'/'.ARG3
+
+
+set title plot_title
+set ylabel 'Valor del temporitzador [M:S]'
+
+set ydata time
+set timefmt "%M:%S"
+set yrange ["00:00":"03:00"]
+plot filtered u :7 w l
+
+# Plot cost
+plot_title = 'Evolució del cost de la ruta cap a '.ARG1.' de '.ARG2
+set title plot_title
+set ylabel 'Cost [nombre de salts]'
+
+unset ydata
+set yrange [1:16]
+plot filtered u :4 w l
+
+
+pause -1 "Prem qualsevol tecla per continuar"

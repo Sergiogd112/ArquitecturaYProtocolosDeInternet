@@ -1,0 +1,14 @@
+#!/bin/bash
+count_dirs () {
+    dir=$1   
+    regexp=$2
+    wc -l < <( awk '{print $NF}' < <(ls -l $dir) | grep -P $regexp )
+}
+routers=$(count_dirs "/var/lib/lxc/" "^R[0-9]{2}$")
+pcs=$(count_dirs "/var/lib/lxc/" "^PC[0-9]{2}$")
+05-stop-containers $routers $pcs
+06-clean-quagga-files $routers
+02-copy-files $routers /home/api/practiques/config.bak
+02-copy-files-PCs $pcs /home/api/practiques/config.bak
+08-delete-bridges 10
+echo "Done!"

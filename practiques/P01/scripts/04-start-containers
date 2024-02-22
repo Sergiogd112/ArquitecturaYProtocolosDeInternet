@@ -1,0 +1,14 @@
+#!/bin/bash
+total=$1
+for ((i=1; i<=$total; i++))
+    do lxc-start -n $(printf "R%02d" $i)
+	echo Starting $(printf "R%02d" $i) .............
+done
+if [ "$#" -eq 2 ]; then
+	total=$2
+	for ((i=1; i<=$total; i++))
+		do lxc-start -n $(printf "PC%02d" $i) 
+          	echo Starting $(printf "PC%02d" $i) ..............
+	done
+fi
+

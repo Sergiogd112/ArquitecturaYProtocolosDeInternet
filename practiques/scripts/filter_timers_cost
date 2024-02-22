@@ -1,0 +1,9 @@
+#! /bin/bash
+network_fn=$(echo $3 | cut -d. -f 1)'_filtered_'$1'_'$(echo $2 | tr / -)'.txt'
+
+cp /var/lib/lxc/$1/rootfs/root/$3 /home/api/router_files/$1
+more /home/api/router_files/$1/$3 | grep $2 > /home/api/router_files/$1/$network_fn
+gnuplot -c /home/api/practiques/scripts/plot_timers_cost $2 $1 $network_fn
+gnuplot -c /home/api/practiques/scripts/plot_timers_cost_png $2 $1 $network_fn
+
+

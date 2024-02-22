@@ -1,4 +1,5 @@
 from functools import reduce
+import os
 from pprint import pprint
 import pandas as pd
 from colorama import Fore, Back, Style
@@ -6,6 +7,9 @@ from ip import get_net_ip, get_broadcast, ip_to_int, int_to_ip
 from binmanipulation import *
 
 BOLD = "\033[1m"
+from rich.console import Console
+from rich.syntax import Syntax
+from rich.table import Table
 
 
 class RouteTable:
@@ -14,10 +18,10 @@ class RouteTable:
             columns=[
                 "Type",
                 "Destination",
+                "Mask",
                 "Cost",
                 "NextHop",
                 "Interface",
-                "Mask",
                 "Selected",
                 "MyCost",
                 "Configured",
@@ -26,10 +30,10 @@ class RouteTable:
             {
                 "Type": "string",
                 "Destination": "string",
+                "Mask": "int",
                 "Cost": "string",
                 "NextHop": "string",
                 "Interface": "string",
-                "Mask": "int",
                 "Selected": "bool",
                 "MyCost": "int",
                 "Configured": "bool",
@@ -41,10 +45,10 @@ class RouteTable:
             columns=[
                 "Type",
                 "Destination",
+                "Mask",
                 "Cost",
                 "NextHop",
                 "Interface",
-                "Mask",
                 "Selected",
                 "MyCost",
                 "Configured",
@@ -53,10 +57,10 @@ class RouteTable:
             {
                 "Type": "string",
                 "Destination": "string",
+                "Mask": "int",
                 "Cost": "string",
                 "NextHop": "string",
                 "Interface": "string",
-                "Mask": "int",
                 "Selected": "bool",
                 "MyCost": "int",
                 "Configured": "bool",
@@ -74,16 +78,17 @@ class RouteTable:
                 if route["Type"] == row["Type"]:
                     if route["MyCost"] > row["MyCost"]:
                         break
-                    elif (
-                        route["Interface"] != row["Interface"]
-                        and route["Mask"] == row["Mask"]
-                        and (route["Type"] == "C" or route["Type"] == "S")
-                    ):
-                        raise Exception("Duplicate route with same interface and mask")
+                    # elif (
+                    #     route["Interface"] != row["Interface"]
+                    #     and route["Mask"] == row["Mask"]
+                    #     and (route["Type"] == "C" or route["Type"] == "S")
+                    # ):
+                    #     raise Exception("Duplicate route with same interface and mask")
                     elif route["Mask"] == row["Mask"]:
                         break
                 if route["Type"] == "S" and row["Type"] == "C":
-                    break
+                    if route["Mask"] == row["Mask"]:
+                        break
             else:
                 self.table = pd.concat(
                     [
@@ -92,10 +97,10 @@ class RouteTable:
                             {
                                 "Type": "string",
                                 "Destination": "string",
+                                "Mask": "int",
                                 "Cost": "string",
                                 "NextHop": "string",
                                 "Interface": "string",
-                                "Mask": "int",
                                 "Selected": "bool",
                                 "MyCost": "int",
                                 "Configured": "bool",
@@ -112,10 +117,10 @@ class RouteTable:
                         {
                             "Type": "string",
                             "Destination": "string",
+                            "Mask": "int",
                             "Cost": "string",
                             "NextHop": "string",
                             "Interface": "string",
-                            "Mask": "int",
                             "Selected": "bool",
                             "MyCost": "int",
                         }
@@ -125,12 +130,17 @@ class RouteTable:
             update = True
 
         self.table = self.table.drop_duplicates()
-        self.table = self.table.sort_values(
-            by=["Destination", "Mask"], ascending=[True, False]
+        self.table = (
+            self.table.assign(intip=self.table["Destination"].apply(ip_to_int))
+            .sort_values(
+                by=["intip", "Mask"], ascending=[True, False], ignore_index=True
+            )
+            .drop(columns=["intip"])
         )
         self.table = self.table.reset_index(drop=True)
         return update
 
+    @staticmethod
     def split_rows(row):
         data = row.replace("  ", " ").replace("  ", " ").split(" ")
         Code = data[0].strip()
@@ -186,6 +196,7 @@ class RouteTable:
         for route in table:
             self.add_route(route)
 
+    @staticmethod
     def format_code(code, p):
         colors = {
             "O": Fore.YELLOW,
@@ -209,55 +220,29 @@ class RouteTable:
         return (res + Style.RESET_ALL).center(l + len(Style.RESET_ALL))
 
     def format_table(self):
-        clens = [
-            max(col)
-            for col in zip(*[[len(str(c)) for c in row] for row in self.table.values])
-        ]
-        headers = list(self.table.columns)
-        lens = [max(a, len(b)) for a, b in zip(clens, headers)]
-        separator = "+" + "+".join(["-" * (l + 2) for l in lens]) + "+"
-        headerstr = (
-            "|"
-            + "|".join(
-                [
-                    " " + BOLD + str(header).center(l) + Style.RESET_ALL + " "
-                    for header, l in zip(headers, lens)
-                ]
+        table = Table(title="Routes")
+        table.add_column("Type", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Destination", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Mask", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Cost", justify="center", style="cyan", no_wrap=True)
+        table.add_column("NextHop", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Interface", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Selected", justify="center", style="cyan", no_wrap=True)
+        table.add_column("MyCost", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Configured", justify="center", style="cyan", no_wrap=True)
+        for idx, row in self.table.iterrows():
+            table.add_row(
+                row["Type"],
+                row["Destination"],
+                str(row["Mask"]),
+                row["Cost"],
+                row["NextHop"],
+                row["Interface"],
+                str(row["Selected"]),
+                str(row["MyCost"]),
+                str(row["Configured"]),
             )
-            + "|"
-        )
-        text = ""
-        text += separator + "\n"
-        text += (headerstr) + "\n"
-        for n, row in self.table.iterrows():
-            rowstr = "| " + RouteTable.format_code(row["Type"], lens[0]) + " "
-            rowstr += (
-                "|"
-                + "|".join(
-                    [
-                        (
-                            " "
-                            + BOLD
-                            + Back.LIGHTBLACK_EX
-                            + str(c).center(l)
-                            + Style.RESET_ALL
-                            + " "
-                            if row["Selected"]
-                            else " " + str(c).center(l) + " "
-                        )
-                        for c, l in zip(
-                            row[list(self.table.drop(columns=["Type"]).columns)],
-                            lens[1:],
-                        )
-                    ]
-                )
-                + "|"
-            )
-            if not ('"' in row["Destination"]):
-                text += separator + "\n"
-            text += rowstr + "\n"
-        text += separator
-        return text
+        return table
 
     def __repr__(self) -> str:
         return self.format_table()
@@ -270,48 +255,116 @@ class RouteTable:
                 return row["NextHop"]
         return None
 
+    @staticmethod
     def compress_net_group(x, y):
+
         if type(x) != list:
             x = [x]
+        # pprint(x)
+        # pprint(y)
+        # print("----")
         last = x[-1]
-        if last["NextHop"] != y["NextHop"]:
-            raise Exception("NextHop mismatch")
+
         if last["Interface"] != y["Interface"]:
-            raise Exception("Interface mismatch")
+            raise ValueError("NextHop mismatch")
+        if last["Interface"] != y["Interface"]:
+            raise ValueError("Interface mismatch")
         if last["Mask"] == y["Mask"]:
             if ip_to_int(
                 get_broadcast(last["Destination"], last["Mask"])
             ) + 1 == ip_to_int(y["Destination"]):
-                last["Mask"] -= 1
-                last["MyCost"] = min(last["MyCost"], y["MyCost"])
+                if x[-1]["Type"] == "C":
+                    x[-1]["NextHop"] = y["NextHop"]
+                x[-1]["Type"] = "S"
+                x[-1]["Mask"] -= 1
+                x[-1]["MyCost"] = min(last["MyCost"], y["MyCost"])
+                x[-1]["Configured"] = False
+
                 return reduce(RouteTable.compress_net_group, x)
             else:
                 x.append(y)
                 return x
+        else:
+            x.append(y)
         return x
 
     def merge_static_by_supernet(self):
         # filter out static routes
-        static = self.table.query("Type == 'S'").copy(deep=True)
+        static = (
+            self.table.query("Type == 'S' or Type=='C'")
+            .copy(deep=True)
+            .sort_values(by=["Destination", "Mask"], ascending=[True, False])
+        )
         # drop the static routes
         self.table = self.table.query("Type != 'S'")
         # group by next hop
-        groups = static.groupby("NextHop")
+        groups = static.groupby("Interface")
         # iterate over groups
-        for nexthop, group in groups:
-            # get the destination ips
-            dests = group["Destination"].values
+        # print(self.format_table())
+        for iface, group in groups:
+
             # compress the group to the minimum number of routes
             routes = reduce(
-                RouteTable.compress_net_group, group.to_dict(orient="records")
+                RouteTable.compress_net_group,
+                group.assign(intip=group["Destination"].apply(ip_to_int))
+                .sort_values(
+                    by=["intip", "Mask"], ascending=[True, False], ignore_index=True
+                )
+                .drop(columns=["intip"])
+                .to_dict(orient="records"),
             )
+            # pprint(routes)
+            if type(routes) != list:
+                routes = [routes]
+            # print(pd.DataFrame(routes))
+            # console=Console()
+            # console.print(routes)
             # add the supernet to the table
             for route in routes:
                 self.add_route(route)
+        self.table = self.table.sort_values(
+            by=["Destination", "Mask"], ascending=[True, False]
+        )
+        # static = (
+        #     self.table.query("Type == 'S' or Type=='C'")
+        #     .copy(deep=True)
+        #     .sort_values(by=["Destination", "Mask"], ascending=[True, False])
+        # )
+        # self.table = self.table.query("Type != 'S'")
+
+        # for idx, row in static.iterrows():
+        #     if idx == len(static) - 1:
+        #         continue
+        #     if (
+        #         row["Interface"] == static.iloc[idx + 1]["Interface"]
+        #         and ip_to_int(get_broadcast(row["Destination"], row["Mask"])) + 1
+        #         == ip_to_int(static.iloc[idx + 1]["Destination"])
+        #         and get_net_ip(
+        #             row["Destination"],
+        #             max(row["Mask"], static.iloc[idx + 1]["Mask"]) - 1,
+        #         )
+        #         == get_net_ip(
+        #             static.iloc[idx + 1]["Destination"],
+        #             max(row["Mask"], static.iloc[idx + 1]["Mask"]) - 1,
+        #         )
+        #     ):
+
+        #         if row["Type"] == "C":
+        #             row["NextHop"] = static.iloc[idx + 1]["NextHop"]
+        #         row["Type"] = "S"
+        #         row["Mask"] -= 1
+        #         row["MyCost"] = min(row["MyCost"], static.iloc[idx + 1]["MyCost"])
+        #         row["Configured"] = False
+        #         row["Destination"] = get_net_ip(
+        #             row["Destination"],
+        #             max(row["Mask"], static.iloc[idx + 1]["Mask"]) - 1,
+        #         )
+        #         self.add_route(row)
+
     def generate_static_routing_commands(self, router=None):
         commands = []
         for idx, row in self.table.query("Type == 'S'").iterrows():
-            command=f"ip route add {row['Destination']}/{row['Mask']} via {row['NextHop']} dev {row['Interface']}"
+            command = f"ip route add {row['Destination']}/{row['Mask']} via {row['NextHop'].split('/')[0]} dev {row['Interface']}"
             if row["Configured"]:
                 continue
             if router is None:
@@ -319,4 +372,30 @@ class RouteTable:
             else:
                 commands.append(f"lxc-attach -n {router} -- {command}")
         return commands
-                    
+
+    def apply_static_routes(self, router=None):
+        commands = self.generate_static_routing_commands(router)
+        for command in commands:
+            print(command)
+            os.system(command)
+
+    def check_table(self):
+        # goup by destination and mask
+        groups = self.table.groupby(["Destination", "Mask"])
+        # iterate over groups
+        for (dest, mask), group in groups:
+            # if there are more than one route
+            if len(group) > 1:
+                # get the first route
+                first = group.iloc[0]
+                # iterate over the group
+                for idx, row in group.iterrows():
+                    # if the route is not the same as the first and has a different interface
+                    if (
+                        not (first == row).all()
+                        and first["Interface"] != row["Interface"]
+                    ):
+                        # print the group
+                        print(group)
+                        # raise an exception
+                        raise Exception("Duplicate route")

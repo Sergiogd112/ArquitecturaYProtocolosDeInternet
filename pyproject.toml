@@ -5,9 +5,14 @@ description = ""
 authors = ["Sergio Gomez Damas"]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.10"
 matplotlib = "^3.8.2"
 numpy = "^1.22.0"
+pandas = "^2.2.0"
+rich = "^12.6.0"
+tqdm = "^4.62.3"
+colorama = "^0.4.4"
+networkx = "^2.7.3"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -15,7 +20,7 @@ pylint = "^2.17.0"
 black = "^23.1.0"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core",]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pylint."MESSAGES CONTROL"]

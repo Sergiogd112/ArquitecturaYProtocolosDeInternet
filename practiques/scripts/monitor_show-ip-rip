@@ -1,0 +1,2 @@
+#!/bin/bash
+watch -n 1 -d "vtysh -c 'show ip rip' | tee -a /root/$1"

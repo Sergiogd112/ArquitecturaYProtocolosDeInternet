@@ -1,36 +1,207 @@
-from ip import *
-from binmanipulation import getFirstSetBitPos
-import numpy as np
+import os
+from typing import Tuple, Union
 from pprint import pprint
+
+from tqdm import tqdm
+import numpy as np
+from colorama import Fore, Style
+from matplotlib import pyplot as plt
+import networkx as nx
+from rich.console import Console
 from route import RouteTable
+from ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
+from binmanipulation import getFirstSetBitPos
 
 
 class Net:
-    def __init__(self, routers, netdict=None, routes=None):
+
+    def __init__(
+        self,
+        routers: dict,
+        netdict: Union[dict, None] = None,
+        routes: Union[dict, None] = None,
+    ):
+        """
+        Initializes a Net object.
+
+        Parameters:
+        - routers (list): A list of routers in the network.
+        - netdict (dict, optional): A dictionary representing the network topology.
+            If not provided, it will be generated based on the routers.
+        - routes (dict, optional): A dictionary representing the routing table.
+            If not provided, it will be empty.
+
+        Returns:
+        None
+        """
         self.netdict = netdict
         self.routers = routers
         if netdict is None:
-            self.netdict = Net.generate_netdict(routers)
+            self.netdict = self.generate_netdict(routers)
         if routes is None:
             self.routes = {}
             # self.generate_routes(routers)
         self.emptyranges = []
 
-    def generate_netdict(routers):
+    def generate_netdict(self, routers: dict) -> dict:
+        """
+        Generate a network dictionary based on the given routers.
+
+        Args:
+            routers (dict): A dictionary containing router information.
+
+        Returns:
+            dict: A network dictionary with bridge, router, and network information.
+        """
         netdict = {}
         for router, value in routers.items():
-            for port, con in value.items():
+            for _, con in value.items():
                 brg = con[0]
+                if brg is None:
+                    continue
                 if not (brg in netdict.keys()):
                     netdict[brg] = {"routers": [router], "devcount": 3}
                 else:
                     netdict[brg]["routers"].append(router)
+                    netdict[brg]["routers"] = sorted(netdict[brg]["routers"])
                     netdict[brg]["devcount"] += 1
                 if len(con) > 1:
                     netdict[brg]["netip"] = get_net_ip(con[1])
                     netdict[brg]["mask"] = int(con[1].split("/")[1])
                     netdict[brg]["maxdevices"] = 2 ** (32 - netdict[brg]["mask"])
         return netdict
+
+    @staticmethod
+    def read_scenario(escenario: str) -> "Net":
+        routers = {}
+        path = "/home/api/practiques/" + escenario.split("-")[0] + "/" + escenario
+        # if this path is not a directory set it to:
+        if not os.path.isdir(path):
+            path = os.path.join("practiques", escenario.split("-")[0], escenario)
+        for el in os.listdir(path):
+            if (
+                "config" in el
+                and "bak" not in el
+                and os.path.isdir(os.path.join(path, el))
+            ):
+                break
+        else:
+            raise FileNotFoundError("No config directory found")
+        for config in os.listdir(os.path.join(path, el)):
+            if "config" in config and "bak" not in config:
+                with open(
+                    os.path.join(path, el, config), "r", encoding="utf-8"
+                ) as file:
+                    contents = file.read()
+                name, conf = Net.lxc_to_router(contents)
+                routers[name] = conf
+        return Net(routers)
+
+    @staticmethod
+    def lxc_to_router(text: str) -> Tuple[str, dict]:
+        # Your code here
+        text = text.strip()
+        # get the uts.name
+        utsname = text.split("lxc.uts.name = ")[1].split("\n")[0]
+        # get the network configuration
+        netconf = text.split("# Network configuration")[1].split("\n\n")
+        netcondict = {}
+        # console = Console()
+        # console.print("\n\n".join(netconf))
+        for block in netconf:
+            if len(block) == 0:
+                continue
+            # get the name of the interface
+
+            name = block.split(".name = ")[1].split("\n")[0].strip()
+            try:
+                brg = block.split(".link = ")[1].split("\n")[0].strip()
+            except IndexError:
+                brg = None
+            if "address" in block:
+                # get the ip address
+                address = block.split("address = ")[1].split("\n")[0].strip()
+                netcondict[name] = {
+                    "brg": brg,
+                    "ip": address,
+                }
+            else:
+                netcondict[name] = {"brg": brg}
+
+        return (utsname, netcondict)
+
+    def read_vtyshrc(self, contents: str) -> dict:
+        """example contents:
+                !
+        interface eth0
+          ip address 10.0.1.193/27
+        !
+        interface eth1
+          ip address 10.0.1.97/27
+        !
+        !
+        !
+        ip forwarding
+        ipv6 forwarding
+        returns:
+                {
+                    "eth0": {"brg":None,"ip":"10.0.1.193/27"},
+                    "eth1": {"brg":None,"ip":"10.0.1.97/27"},
+                }
+        """
+        blocks = contents.split("!\n")[1:]
+        res = {}
+        for block in blocks:
+            if "interface" in block:
+                name = block.split("interface ")[1].split("\n")[0]
+                if "ip address" in block:
+                    address = block.split("ip address ")[1].split("\n")[0]
+                    res[name] = {"brg": None, "ip": address}
+                if "ip ospf" in block:
+                    res[name]["ospf"] = block.split("ip ospf ")[1].split("\n")[0]
+                else:
+                    res[name] = {"brg": None}
+            if "router ospf" in block:
+                if not "ospf" in res.keys():
+                    res["ospf"] = {}
+                for line in block.split("\n")[1:]:
+                    area = line.split("area ")[1].split("\n")[0]
+                    net = line.split("network ")[1].split(" ")[0]
+                    if area not in res["ospf"].keys():
+                        res["ospf"][area] = net
+        return res
+
+    def read_scenario_subconfigs(self, escenario: str, sub: str) -> "Net":
+        path = "/home/api/practiques/" + escenario.split("-")[0] + "/" + escenario
+        # if this path is not a directory set it to:
+        if not os.path.isdir(path):
+            path = os.path.join("practiques", escenario.split("-")[0], escenario)
+        for el in os.listdir(path):
+            if (
+                "config" in el
+                and "bak" not in el
+                and os.path.isdir(os.path.join(path, el))
+            ):
+                break
+        else:
+            raise FileNotFoundError("No config directory found")
+        for file in os.listdir(os.path.join(path, el)):
+            if sub in file:
+                router = file.split("_")[1]
+                with open(os.path.join(path, el, file), "r", encoding="utf-8") as file:
+                    contents = file.read()
+                res = self.read_vtyshrc(contents)
+                for port, conf in res.items():
+                    if router not in self.routers.keys():
+                        self.routers[router] = {port: conf}
+                    if len(conf) <= 1:
+                        self.routers[router][port] = [self.routers[router][port][0]]
+                    else:
+                        self.routers[router][port] = [
+                            self.routers[router][port][0],
+                            conf[1],
+                        ]
+        self.netdict = self.generate_netdict(self.routers)
 
     def generate_routes(self, routers=None):
         if routers is None:
@@ -40,23 +211,26 @@ class Net:
                 self.routes[router] = RouteTable()
             for port, con in value.items():
                 if len(con) > 1:
-                    self.routes[router].add_route(
-                        {
-                            "Type": "C",
-                            "Destination": self.netdict[con[0]]["netip"],
-                            "Cost": "0",
-                            "NextHop": "direct connect",
-                            "Interface": port,
-                            "Mask": int(con[1].split("/")[1]),
-                            "Selected": True,
-                            "MyCost": 0,
-                            "Configured": True,
-                        }
-                    )
+                    if con["brg"] in self.netdict.keys():
+
+                        self.routes[router].add_route(
+                            {
+                                "Type": "C",
+                                "Destination": self.netdict[con["brg"]]["netip"],
+                                "Cost": "0",
+                                "NextHop": "direct connect",
+                                "Interface": port,
+                                "Mask": int(con["ip"].split("/")[1]),
+                                "Selected": True,
+                                "MyCost": 0,
+                                "Configured": True,
+                            }
+                        )
 
         return self.routes
 
-    def fix_ranges(ranges):
+    @staticmethod
+    def fix_ranges(ranges: list) -> list:
         res = []
         for ran in ranges:
             # (32,127,None)
@@ -112,9 +286,7 @@ class Net:
                             (netipintend, ran[1], maskend)
                         ]
                 else:
-                    raise (
-                        Exception("Either you found a bug in the code or broke math")
-                    )
+                    raise ValueError("Either you found a bug in the code or broke math")
 
         return res
 
@@ -123,7 +295,7 @@ class Net:
             mask = int(mainnetip.split("/")[1])
             mainnetip = mainnetip.split("/")[0]
         ranges = []
-        for brg, conf in self.netdict.items():
+        for _, conf in self.netdict.items():
             if "netip" in conf.keys():
                 ranges = ranges + [
                     (
@@ -152,7 +324,8 @@ class Net:
 
         return self.emptyranges
 
-    def print_ranges_with_ip(ranges):
+    @staticmethod
+    def print_ranges_with_ip(ranges: list):
         for ran in ranges:
             print(int_to_ip(ran[0]), int_to_ip(ran[1]), ran[2])
 
@@ -223,7 +396,7 @@ class Net:
                     # pprint(self.netdict[brg])
                     break
             else:
-                raise Exception("No more ranges available")
+                raise RuntimeError("No more ranges available")
             # print("===" * 10)
             # print("===" * 10)
         return self.netdict
@@ -236,7 +409,7 @@ class Net:
 
     def check_ip_used(self, ip, brg):
         for router in self.netdict[brg]["routers"]:
-            for port, con in self.routers[router].items():
+            for _, con in self.routers[router].items():
                 if len(con) == 1:
                     continue
                 if con[0] != brg:
@@ -268,15 +441,14 @@ class Net:
                     if not self.check_ip_used(int_to_ip(i), brg):
                         portip = int_to_ip(i) + "/" + str(self.netdict[brg]["mask"])
                         break
-                self.routers[router][port].append(portip)
+                self.routers[router][port]["ip"] = portip
                 if apply:
                     commands.append(
-                        f"lxc-attach -n {router} -- ip addr add {portip} dev {port} && ip link set {port} up"
+                        f"lxc-attach -n {router} -- ip addr add {portip} dev {port}"
                     )
         return self.routers, commands
 
-    def generate_non_direct_routes(self, apply=False, unconfigured=None):
-        commands = []
+    def generate_non_direct_routes(self, unconfigured=None):
         if unconfigured is None:
             unconfigured = list(self.routers.keys())
         i = 0
@@ -284,12 +456,12 @@ class Net:
             # print("===" * 20)
             # print("===" * 20)
             if i > 1000:
-                raise Exception("Infinite loop")
+                raise RuntimeError("Infinite loop")
             router = unconfigured.pop(0)
             # print(router)
             con = self.routers[router]
             # print(self.routes[router].format_table())
-            for port, conf in con.items():
+            for _, conf in con.items():
                 if len(conf) == 1:
                     continue
                 brg = conf[0]
@@ -305,7 +477,7 @@ class Net:
                         continue
                     updates = 0
                     # print(f"Checking {nextrouter} {neightport}")
-                    for idx, route in self.routes[router].table.iterrows():
+                    for _, route in self.routes[router].table.iterrows():
                         if route["Destination"] != self.netdict[brg]["netip"]:
                             updates += int(
                                 self.routes[nextrouter].add_route(
@@ -334,6 +506,106 @@ class Net:
         for router, routes in self.routes.items():
             # print(router)
             # print(routes.format_table())
-            commands+=(
-                routes.generate_static_routing_commands(router))
+            commands += routes.generate_static_routing_commands(router)
         return commands
+
+    def check_all_connections(self, visually=False):
+        res = np.zeros((len(self.routers.keys()), len(self.routers.keys())))
+        if visually:
+            iterator = tqdm(enumerate(sorted(self.routers.keys())))
+        else:
+            iterator = enumerate(self.routers.items())
+        for i, startrouter in iterator:
+            for j, (endrouter, endvalue) in enumerate(self.routers.items()):
+                # if startrouter == endrouter:
+                #     continue
+                for _, econ in endvalue.items():
+                    if len(econ) > 1:
+                        check = self.check_connection(
+                            startrouter, econ[1].split("/")[0]
+                        )
+                        if visually and not check:
+                            # print ERROR in red and bold if the connection fails
+                            print(
+                                "lxc-attach -n {} -- ping -c 1 -W 1 {}".format(
+                                    startrouter, econ[1].split("/")[0]
+                                )
+                            )
+                            print(
+                                Fore.RED
+                                + Style.BRIGHT
+                                + f"ERROR: {startrouter} -> {endrouter} {econ[1].split('/')[0]}"
+                                + Style.RESET_ALL
+                            )
+                        # elif visually:
+                        #     print(
+                        #         Fore.GREEN
+                        #         + Style.BRIGHT
+                        #         + f"OK: {startrouter} -> {endrouter} {econ[1].split('/')[0]}"
+                        #         + Style.RESET_ALL
+                        #     )
+                        res[i, j] += int(check)
+                res[i, j] = res[i, j] // (len(endvalue.keys()))
+        pprint(res)
+        return np.float64(np.sum(res)), np.float64(len(self.routers.keys()) ** 2)
+
+    def check_connection(self, router1, ip2) -> bool:
+        res = ping(ip2, count=1, lxc_container=router1)
+        if res is None:
+            return False
+        return float(res["loss"].replace("%", "").strip()) == 0
+
+    def apply_configuration(self):
+        commands = self.generate_static_commands()
+        for command in commands:
+            os.system(command)
+
+    def to_nxgraph(self):
+        G = nx.DiGraph()
+        for router, con in self.routers.items():
+            G.add_node(router)
+            for port, conf in con.items():
+                if len(conf) == 1:
+                    continue
+                brg = conf[0]
+                for nextrouter in self.netdict[brg]["routers"]:
+                    if nextrouter == router:
+                        continue
+                    neightport = self.get_router_port_from_brdg(nextrouter, brg)
+                    if neightport is None:
+                        continue
+                    G.add_edge(router, nextrouter, port=port, neightport=neightport)
+        return G
+
+    def draw_graph(self):
+        G = self.to_nxgraph()
+        pos = nx.spring_layout(G)
+        nx.draw(
+            G,
+            pos,
+            with_labels=True,
+            node_color="skyblue",
+            edge_color="black",
+            width=1,
+            alpha=0.7,
+        )
+        edge_labels = nx.get_edge_attributes(G, "port")
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+        plt.show()
+
+    def check_routes(self):
+        for router, routes in self.routes.items():
+            print(router)
+            routes.check_table()
+
+    def netdic_to_list(self):
+        res = []
+        for brg, conf in self.netdict.items():
+            res.append(
+                [
+                    brg,
+                    conf["devcount"],
+                    conf["routers"],
+                ]
+            )
+        return res

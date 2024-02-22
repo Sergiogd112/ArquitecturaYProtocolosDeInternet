@@ -1,0 +1,35 @@
+#!/bin/bash
+count_dirs () {
+    dir=$1   
+    regexp=$2
+    wc -l < <( awk '{print $NF}' < <(ls -l $dir) | grep -P $regexp )
+}
+if [[ ("$#" -eq 0 ) || ("$#" -eq 1 && $1 == "all") ]]; then
+routers=$(count_dirs "/var/lib/lxc/" "^R[0-9]{2}$")
+pcs=$(count_dirs "/var/lib/lxc/" "^PC[0-9]{2}$")
+05-stop-containers $routers $pcs
+06-clean-quagga-files $routers
+if [ "$#" -eq 0 ]; then
+     02-copy-files 5 /home/api/practiques/P01/P01-E01/config_files_$(printf "PC%d" 1)
+elif [ "$#" -eq 1 ]; then
+     02-copy-files 5 /home/api/practiques/P01/P01-E01-backup/config_files_$(printf "PC%d" 1)
+fi
+03-create-bridges 10
+04-start-containers 5
+04-rp-filter 5
+if [ "$#" -eq 1 ]; then
+        lxc-attach -n R01 -- ip route add 10.0.0.0/24 via 10.0.0.146
+	lxc-attach -n R05 -- ip route add 10.0.0.0/25 via 10.0.0.113
+	lxc-attach -n R05 -- ip route add 10.0.0.128/25 via 10.0.0.137
+	lxc-attach -n R03 -- ip route add 10.0.0.0/25 via 10.0.0.98
+	lxc-attach -n R03 -- ip route add 10.0.0.128/25 via 10.0.0.129
+	lxc-attach -n R03 -- ip route add 10.0.0.120/29 via 10.0.0.114
+	lxc-attach -n R04 -- ip route add 10.0.0.0/24 via 10.0.0.97
+	lxc-attach -n R02 -- ip route add 10.0.0.0/25 via 10.0.0.130
+	lxc-attach -n R02 -- ip route add 10.0.0.128/25 via 10.0.0.145
+	lxc-attach -n R02 -- ip route add 10.0.0.120/29 via 10.0.0.138
+fi
+echo "Done!"
+else
+     echo "error a l'introduir els paràmetres"
+fi

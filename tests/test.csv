@@ -1,0 +1,22 @@
+Type,Destination,Mask,Cost,NextHop,Interface,Selected,MyCost,Configured
+O,10.1.1.0,24,[110/10],direct connect,eth0,False,0,False
+C,10.1.1.0,24,x,direct connect,eth0,True,0,True
+O,10.1.2.0,24,[110/10],direct connect,eth1,False,0,False
+C,10.1.2.0,24,x,direct connect,eth1,True,0,True
+O,10.1.3.0,24,[110/20],10.1.2.2,eth1,True,0,False
+O,10.1.4.0,24,[110/30],10.1.2.2,eth1,True,0,False
+O,10.1.5.0,24,[110/20],10.1.2.2,eth1,True,0,False
+O,10.1.6.0,24,[110/30],10.1.2.2,eth1,True,0,False
+O,10.1.7.0,24,[110/40],10.1.2.2,eth1,True,0,False
+O,10.1.8.0,24,[110/10],direct connect,eth2,False,0,False
+C,10.1.8.0,24,x,direct connect,eth2,True,0,True
+O,10.1.9.0,24,[110/20],10.1.8.4,eth2,True,0,False
+O,10.1.10.0,24,[110/20],10.1.2.2,eth1,True,0,False
+O,10.1.11.0,24,[110/30],10.1.2.2,eth1,True,0,False
+O,10.1.12.0,24,[110/30],10.1.2.2,eth1,True,0,False
+O,10.1.13.0,24,[110/20],10.1.8.4,eth2,True,0,False
+O,10.1.14.0,24,[110/20],10.1.8.4,eth2,True,0,False
+O,10.1.15.0,24,[110/30],10.1.8.4,eth2,True,0,False
+O,10.1.16.0,24,[110/30],10.1.8.4,eth2,True,0,False
+O,10.1.17.0,24,[110/40],10.1.2.2,eth1,True,0,False
+C,127.0.0.0,8,x,direct connect,lo,True,0,True

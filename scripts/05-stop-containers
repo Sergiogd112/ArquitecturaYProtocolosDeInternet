@@ -2,7 +2,7 @@
 total=$1
 for ((i = 1; i <= $total; i++)); do
 	lxc-stop -n $(printf "R%02d" $i)
-done
+donecd
 if [ "$#" -eq 2 ]; then
 	total=$2
 	for ((i = 1; i <= $total; i++)); do
