@@ -344,9 +344,9 @@ class TUI:
             table.add_column("IP Address")
             table.add_column("brg")
             for port, con in conf.items():
-                brg = con[0]
+                brg = con["brg"]
                 if len(con) > 1:
-                    ip = con[1]
+                    ip = con["ip"]
                 else:
                     ip = ""
                 table.add_row(port, ip, brg)
