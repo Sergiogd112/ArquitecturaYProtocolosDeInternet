@@ -174,6 +174,7 @@ class Net:
                     net = line.split("network ")[1].split(" ")[0]
                     if area not in res["ospf"].keys():
                         res["ospf"][area] = net
+        Console().print(res)
         return res
 
     def read_scenario_subconfigs(self, escenario: str, sub: str) -> "Net":
@@ -198,7 +199,9 @@ class Net:
                 res = self.read_vtyshrc(contents)
                 for port, conf in res.items():
                     if router not in self.routers.keys():
-                        self.routers[router] = {port: conf}
+                        self.routers[router] = {port: {"brg": conf["brg"]}}
+                    if port not in self.routers[router].keys():
+                        self.routers[router][port] = {"brg": conf["brg"]}
                     if len(conf) <= 1:
                         self.routers[router][port]["brg"] = self.routers[router][port][
                             "brg"
@@ -206,7 +209,15 @@ class Net:
                     else:
                         self.routers[router][port] = {
                             "brg": self.routers[router][port]["brg"],
-                            "ip": conf["ip"],
+                            "ip": (
+                                conf["ip"]
+                                if conf["ip"] is not None
+                                else (
+                                    self.routers[router][port]["ip"]
+                                    if "ip" in self.routers[router][port]
+                                    else None
+                                )
+                            ),
                         }
 
         self.netdict = self.generate_netdict(self.routers)
