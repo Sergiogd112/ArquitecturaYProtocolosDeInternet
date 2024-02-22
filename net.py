@@ -9,6 +9,8 @@ from matplotlib import pyplot as plt
 import networkx as nx
 
 from rich.console import Console
+from rich.pretty import Pretty
+
 from route import RouteTable
 from ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
 from binmanipulation import getFirstSetBitPos
@@ -130,7 +132,6 @@ class Net:
                 }
             else:
                 netcondict["iface"][name] = {"brg": brg}
-
         return (utsname, netcondict)
 
     def read_vtyshrc(self, contents: str) -> Tuple[int, dict]:
@@ -156,11 +157,19 @@ class Net:
         res = {"iface": {}}
         changes = 0
         for block in blocks:
+            block=block.strip()
+            if "" == block:
+                continue
+            Console().print(block)
+            
             if "interface" in block:
                 name = block.split("interface ")[1].split("\n")[0]
-                res["iface"][name] = {}
+                Console().print(name)
+                if name not in res["iface"]:
+                    res["iface"][name] = {}
                 if "ip address" in block:
                     address = block.split("ip address ")[1].split("\n")[0]
+                    Console().print(address)
                     res["iface"][name] = {"brg": None, "ip": address}
                     changes += 1
                 if "ip ospf" in block:
@@ -169,7 +178,7 @@ class Net:
                     ]
                     changes += 1
                 else:
-                    res[name] = {"brg": None}
+                    res["iface"][name] = {"brg": None}
                     changes += 1
             if "router ospf" in block:
                 if "ospf" not in res:
@@ -182,7 +191,9 @@ class Net:
                     net = line.split("network ")[1].split(" ")[0]
                     if area not in res["ospf"].keys():
                         res["ospf"] += [{"area": area, "network": net}]
+
                         changes += 1
+        Console().print("read_vtyshrc", changes)
         Console().print(res)
         return changes, res
 
@@ -191,6 +202,7 @@ class Net:
         # if this path is not a directory set it to:
         if not os.path.isdir(path):
             path = os.path.join("practiques", escenario.split("-")[0], escenario)
+        Console().print(path)
         for el in os.listdir(path):
             if (
                 "config" in el
@@ -209,9 +221,11 @@ class Net:
                 ch, res = self.read_vtyshrc(contents)
                 if ch < 1:
                     continue
+
                 for port, conf in res["iface"].items():
                     Console().print(port)
                     Console().print(conf)
+
                     if len(conf) < 1:
                         continue
 
@@ -225,7 +239,7 @@ class Net:
                     if len(conf) <= 1:
                         self.routers[router]["iface"][port]["brg"] = self.routers[
                             router
-                        ][port]["brg"]
+                        ]["iface"][port]["brg"]
                     else:
                         self.routers[router]["iface"][port] = {
                             "brg": self.routers[router]["iface"][port]["brg"],

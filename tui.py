@@ -73,6 +73,8 @@ class TUI:
     def scenario_state(self, scenario):
         self.net = Net.read_scenario(scenario)
         self.show_routers()
+        self.console.print(self.net.netdict)
+        self.console.print(self.net.routers)
         while True:
             self.console.print(
                 "Scenario: " + scenario + "Type: " + self.stype, style="bold green"
@@ -353,11 +355,11 @@ class TUI:
                 tables += [
                     Table(show_header=True, title=sect, header_style="bold magenta")
                 ]
-                
+
                 df = pd.DataFrame(block).T
                 for col in df.columns:
                     tables[-1].add_column(col)
-                
+
                 for row in df.iterrows():
                     tables[-1].add_row(*row[1])
 
