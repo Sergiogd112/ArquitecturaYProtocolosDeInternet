@@ -1,18 +1,14 @@
-from subprocess import run
-from rich.console import Console, Group
-from rich.table import Table
-from rich.panel import Panel
+from rich.console import Console
 from rich.prompt import Prompt
 from rich.layout import Layout
-from rich.columns import Columns
-import pandas as pd
-from show import Show
+from .show import Show
 
 
 class Configure:
-    def __init__(self):
+    def __init__(self, scenario: str):
         self.console = Console()
         self.layout = Layout()
+        self.scenario = scenario
 
     def run(self, net, stype):
         self.console.print("Configure scenario")
@@ -75,6 +71,7 @@ class Configure:
                 "Select a section",
                 choices=["iface", "ospf", "bgp"],
             )
+            Show().show_router(net, router, net.routers[router], True)
             match section:
                 case "iface":
                     self.configure_iface(net, router)
@@ -95,9 +92,11 @@ class Configure:
     def configure_iface(self, net, router):
         self.console.print("Configure iface")
         while True:
+            Show().show_router(net, router, net.routers[router], True)
+
             iface = Prompt.ask(
                 "Select an iface",
-                choices=["q", "quit"] + net.routers[router]["iface"].keys(),
+                choices=["q", "quit"] + list(net.routers[router]["iface"].keys()),
             )
             if iface in ["q", "quit"]:
                 return
@@ -120,9 +119,65 @@ class Configure:
                     )
                     net.set_iface_ospf(router, iface, p2p, True)
 
+    def configure_ospf(self, net, router):
+        self.console.print("Configure ospf")
+        while True:
+            Show().show_router(net, router, net.routers[router], True)
+            area = Prompt.ask(
+                "Select an area",
+                choices=["q", "quit", "c", "create"]
+                + [x["area"] for _, x in net.routers[router]["ospf"].items()],
+            )
+            if area in ["q", "quit"]:
+                return
+            if area in ["c", "create"]:
+                area = Prompt.ask("Enter the area:")
+            netip = Prompt.ask(
+                "Enter the network ip/mask", choices=net.get_netips_to_router(router)
+            )
+            net.set_ospf(router, area, netip, True)
+
+    def configure_bgp(self, net, router):
+        self.console.print("TODO: Configure bgp")
+
+    def configure_bridges(self, net):
+        self.console.print("TODO: Configure bridges")
+
+    def configure_routes(self, net):
+        self.console.print("TODO: Configure routes")
+
     def configure_solver(self, stype):
         self.console.print("Configure scenario")
         stype = Prompt.ask("Select the type", choices=["static", "rip", "ospf", "bgp"])
         self.console.print("Selected type: " + stype)
 
         return stype
+
+    def load_scenario(self, net):
+        self.console.print("Loading scenario")
+        opt = Prompt.ask(
+            "Do you want to load from files or the current running config?",
+            choices=["f", "files", "c", "config"],
+        )
+        if opt in ["f", "files"]:
+            net.load_scenario(self.scenario)
+        elif opt in ["c", "config"]:
+            self.load_running(net)
+        else:
+            self.console.print("Invalid option")
+
+    def load_running(self, net):
+        self.console.print("Loading running config")
+        while True:
+            src = Prompt.ask(
+                "Enter the source router",
+                choices=["vtrc", "vtyshrc", "brctl", "vtrt", "vtyshrt"],
+            )
+            if src in ["vtrc", "vtyshrc"]:
+                net.load_vtyshrc()
+            elif src in ["vtrt", "vtyshrt"]:
+                net.load_vtyshrt()
+            elif src in ["brctl"]:
+                net.load_brctl()
+            else:
+                self.console.print("Invalid option")

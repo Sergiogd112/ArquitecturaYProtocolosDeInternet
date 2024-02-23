@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 import networkx as nx
 
 from rich.console import Console
-from rich.pretty import Pretty
+from rich.prompt import Prompt
 
 from route import RouteTable
 from ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
@@ -73,6 +73,12 @@ class Net:
                     netdict[brg]["netip"] = get_net_ip(con["ip"])
                     netdict[brg]["mask"] = int(con["ip"].split("/")[1])
                     netdict[brg]["maxdevices"] = 2 ** (32 - netdict[brg]["mask"])
+                if "ospf" in con:
+                    netdict[brg]["ospf"] = con["ospf"]
+            if "ospf" in value:
+                for ospf in value["ospf"]:
+                    netdict[brg]["ospf"] = ospf
+        self.netdict = netdict
         return netdict
 
     @staticmethod
@@ -133,7 +139,7 @@ class Net:
                 }
             else:
                 netcondict["iface"][name] = {"brg": brg}
-        return (utsname, netcondict)
+        return utsname, netcondict
 
     def read_vtyshrc(self, contents: str) -> Tuple[int, dict]:
         """example contents:
@@ -211,7 +217,73 @@ class Net:
         Console().print(res)
         return changes, res
 
-    def read_scenario_subconfigs(self, escenario: str, sub: str) -> "Net":
+    def load_vtyshrt(self, escenario: str):
+        for router, routes in self.routes.items():
+            console_out = os.popen(
+                f"lxc-attach -n {router} -- vtysh -c 'show ip route'"
+            ).read()
+            routes.loads_vtysh_routes(console_out)
+
+    def load_running_config(self, escenario: str):
+        for router, conf in self.routers.items():
+            # get the vtysh running config
+            consoleout = os.popen(
+                f"lxc-attach -n {router} -- vtysh -c 'show running'"
+            ).read()
+            ch, res = self.read_vtyshrc(consoleout)
+            if ch < 1:
+                continue
+            for iface, con in res["iface"].items():
+                if len(con) < 1:
+                    continue
+                if iface not in self.routers[router]["iface"].keys():
+                    self.routers[router]["iface"][iface] = con
+                else:
+                    self.routers[router]["iface"][iface] = {
+                        "brg": self.routers[router]["iface"][iface]["brg"],
+                        "ip": (
+                            con["ip"]
+                            if "ip" in con and con["ip"] is not None
+                            else (
+                                self.routers[router]["iface"][iface]["ip"]
+                                if "ip" in self.routers[router]["iface"][iface]
+                                else None
+                            )
+                        ),
+                    }
+                if "ospf" in con:
+                    self.routers[router]["iface"][iface]["ospf"] = con["ospf"]
+            if "ospf" in res:
+                self.routers[router]["ospf"] = res["ospf"]
+        self.netdict = self.generate_netdict(self.routers)
+
+    def load_brctl_show(self):
+        consoleout = os.popen("brctl show").read()
+        pbrg = None
+        for line in consoleout[1:]:
+            brg = line.split("\t")[0]
+            if brg == "":
+                brg = pbrg
+            router, iface = line.split("\t")[-1].split("-")
+            if brg not in self.netdict.keys():
+                self.netdict[brg] = {"routers": [router], "devcount": 3}
+            else:
+                self.netdict[brg]["routers"].append(router)
+                self.netdict[brg]["routers"] = sorted(self.netdict[brg]["routers"])
+                self.netdict[brg]["devcount"] += 1
+            if router not in self.routers.keys():
+                self.routers[router] = {"iface": {iface: {"brg": brg}}}
+            else:
+                self.routers[router]["iface"][iface]["brg"] = brg
+
+    def get_netips_from_router(self, router):
+        netips = []
+        for _, conf in self.routers[router]["iface"].items():
+            if len(conf) > 1:
+                netips.append(get_net_ip(conf["ip"]))
+        return netips
+
+    def read_scenario_subconfigs(self, escenario: str, sub: str):
         path = "/home/api/practiques/" + escenario.split("-")[0] + "/" + escenario
         # if this path is not a directory set it to:
         if not os.path.isdir(path):
@@ -678,11 +750,17 @@ class Net:
             os.system(
                 f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}' -c 'ip address {ip}'"
             )
+        self.netdict = self.generate_netdict(self.routers)
 
     def set_iface_ospf(self, router, iface, p2p, apply=False):
         self.routers[router]["iface"][iface]["ospf"] = (
             "point-to-point" if p2p == "y" else ""
         )
+        if "ospf" not in self.routers[router].keys():
+            Console().print("Adding ospf to router")
+            area = Prompt.ask("Enter the area")
+            netip = get_net_ip(self.routers[router]["iface"][iface]["ip"])
+            self.routers[router]["ospf"] = [{"area": area, "network": netip}]
         if apply:
             if p2p == "y":
                 os.system(
@@ -692,3 +770,12 @@ class Net:
                 os.system(
                     f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}' -c 'no ip ospf point-to-point'"
                 )
+
+    def set_ospf(self, router, area, netip, apply=False):
+        if "ospf" not in self.routers[router].keys():
+            self.routers[router]["ospf"] = []
+        self.routers[router]["ospf"].append({"area": area, "network": netip})
+        if apply:
+            os.system(
+                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'router ospf 1' -c 'network {netip} area {area}'"
+            )

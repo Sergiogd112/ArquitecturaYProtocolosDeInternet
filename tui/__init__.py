@@ -17,6 +17,7 @@ import os
 from net import Net
 
 from .show import Show
+from .configure import Configure
 
 
 class TUI:
@@ -26,6 +27,7 @@ class TUI:
         self.stype = ""
         self.net = None
         self.show = Show()
+        self.configure = Configure()
 
     def lobby(self):
         self.net = None
@@ -37,14 +39,13 @@ class TUI:
                 border_style="green",
             )
         )
-        ppath=os.path.join("/home", "api", "practiques")
+        ppath = os.path.join("/home", "api", "practiques")
         if not os.path.exists(ppath):
-            ppath=os.path.join("practiques")
+            ppath = os.path.join("practiques")
         practs = [
             path[1:]
             for path in os.listdir(ppath)
-            if os.path.isdir(os.path.join(ppath, path))
-            and "P" in path
+            if os.path.isdir(os.path.join(ppath, path)) and "P" in path
         ]
         while True:
             pract = Prompt.ask(
@@ -56,12 +57,8 @@ class TUI:
             pract = "P" + pract
             scenarios = [
                 scenario.split("-")[1]
-                for scenario in os.listdir(
-                    os.path.join(ppath, pract)
-                )
-                if os.path.isdir(
-                    os.path.join(ppath, pract, scenario)
-                )
+                for scenario in os.listdir(os.path.join(ppath, pract))
+                if os.path.isdir(os.path.join(ppath, pract, scenario))
                 and "E" in scenario
                 and "backup" not in scenario
             ]
@@ -95,7 +92,7 @@ class TUI:
                 ["st", "stop", "Stop the scenario"],
                 ["ru", "run", "Run the scenario"],
                 ["rr", "restart-run", "Restart and run the scenario"],
-                ["c", "configure", "Configure the solver"],
+                ["c", "configure", "Configure the scenario and solver type"],
                 ["sh", "show", "Show the current configuration"],
                 ["t", "test", "Test the current configuration"],
                 ["q", "quit", "Quit the scenario"],
@@ -122,7 +119,7 @@ class TUI:
                 case "rr":
                     self.restart_run_scenario(scenario)
                 case "c":
-                    self.configure_scenario()
+                    self.configure.run(self.net, self.stype)
                 case "sh":
                     self.show.show_scenario(self.net)
                 case "t":
@@ -167,9 +164,9 @@ class TUI:
             self.console.print("Selected: " + starts[idx])
             os.system(starts[idx])
             self.net.read_scenario_subconfigs(scenario, starts[idx].split("-")[-1])
-            self.show_routers()
-            self.show_bridges()
-            self.show_routes()
+            self.show.show_routers(self.net)
+            self.show.show_bridges(self.net)
+            self.show.show_routes(self.net)
 
     def stop_scenario(self, scenario):
         self.console.print("Stopping scenario: " + scenario)

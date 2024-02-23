@@ -6,6 +6,7 @@ from rich.prompt import Prompt
 from rich.layout import Layout
 from rich.columns import Columns
 import pandas as pd
+from net import Net
 
 
 class Show:
@@ -55,40 +56,49 @@ class Show:
                 case "q":
                     return
 
+    def show_router(
+        self, net: "Net", router: str, conf: dict, printout: bool = False
+    ) -> Panel:
+        tables = []
+        for sect, block in conf.items():
+            self.console.print(sect)
+            self.console.print(block)
+
+            df = pd.DataFrame(block).T
+            if "ospf" in sect:
+                df = df.T
+            self.console.print(df)
+            tables += [Table(show_header=True, title=sect, header_style="bold magenta")]
+            tables[-1].add_column("Key")
+            for col in df.columns:
+                tables[-1].add_column(col)
+
+            for idx, row in df.iterrows():
+                self.console.print(idx)
+                self.console.print(row)
+                self.console.print(row.values)
+
+                tables[-1].add_row(
+                    *([str(idx)] + [val.__repr__() for val in row.values])
+                )
+            if printout:
+                self.console.print(
+                    Panel(
+                        Group(*tables),
+                        title="[bold magenta]" + router + "[/bold magenta]",
+                    )
+                )
+            return Panel(
+                Group(*tables),
+                title="[bold magenta]" + router + "[/bold magenta]",
+            )
+
     def show_routers(self, net):
         self.console.print("Show routers")
         columns = Columns(expand=True)
         for router, conf in net.routers.items():
-            tables = []
-            for sect, block in conf.items():
-                self.console.print(sect)
-                self.console.print(block)
-
-                df = pd.DataFrame(block).T
-                if "ospf" in sect:
-                    df = df.T
-                self.console.print(df)
-                tables += [
-                    Table(show_header=True, title=sect, header_style="bold magenta")
-                ]
-                tables[-1].add_column("Key")
-                for col in df.columns:
-                    tables[-1].add_column(col)
-
-                for idx, row in df.iterrows():
-                    self.console.print(idx)
-                    self.console.print(row)
-                    self.console.print(row.values)
-
-                    tables[-1].add_row(
-                        *([str(idx)] + [val.__repr__() for val in row.values])
-                    )
-            columns.add_renderable(
-                Panel(
-                    Group(*tables),
-                    title="[bold magenta]" + router + "[/bold magenta]",
-                )
-            )
+            panel = self.show_router(net, router, conf)
+            columns.add_renderable(panel)
         self.console.print(columns)
 
     def show_bridges(self, net):
