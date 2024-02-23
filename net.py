@@ -17,7 +17,6 @@ from binmanipulation import getFirstSetBitPos
 
 
 class Net:
-
     def __init__(
         self,
         routers: dict,
@@ -81,8 +80,10 @@ class Net:
         routers = {}
         path = "/home/api/practiques/" + escenario.split("-")[0] + "/" + escenario
         # if this path is not a directory set it to:
+
         if not os.path.isdir(path):
             path = os.path.join("practiques", escenario.split("-")[0], escenario)
+        Console().print(path)
         for el in os.listdir(path):
             if (
                 "config" in el
@@ -157,29 +158,44 @@ class Net:
         res = {"iface": {}}
         changes = 0
         for block in blocks:
-            block=block.strip()
+            block = block.strip()
             if "" == block:
                 continue
             Console().print(block)
-            
+
             if "interface" in block:
                 name = block.split("interface ")[1].split("\n")[0]
-                Console().print(name)
+                # Console().print(name)
+                # if name not in res["iface"]:
+                #     res["iface"][name] = {}
+                # if "ip address" in block:
+                #     address = block.split("ip address ")[1].split("\n")[0]
+                #     Console().print(address)
+                #     res["iface"][name] = {"brg": None, "ip": address}
+                #     changes += 1
+                # elif "ip ospf" in block:
+                #     res["iface"][name]["ospf"] = block.split("ip ospf ")[1].split("\n")[
+                #         0
+                #     ]
+                #     changes += 1
+                # else:
+                #     res["iface"][name] = {"brg": None}
+                #     changes += 1
                 if name not in res["iface"]:
-                    res["iface"][name] = {}
-                if "ip address" in block:
-                    address = block.split("ip address ")[1].split("\n")[0]
-                    Console().print(address)
-                    res["iface"][name] = {"brg": None, "ip": address}
-                    changes += 1
-                if "ip ospf" in block:
-                    res["iface"][name]["ospf"] = block.split("ip ospf ")[1].split("\n")[
-                        0
-                    ]
-                    changes += 1
-                else:
                     res["iface"][name] = {"brg": None}
                     changes += 1
+                for line in block.split("\n")[1:]:
+                    Console().print(line)
+                    if "ip address" in line:
+                        address = line.split("ip address ")[1].split("\n")[0]
+                        Console().print(address)
+                        res["iface"][name] = {"brg": None, "ip": address}
+                        changes += 1
+                    elif "ip ospf" in line:
+                        res["iface"][name]["ospf"] = line.split("ip ospf ")[1].split(
+                            "\n"
+                        )[0]
+                        changes += 1
             if "router ospf" in block:
                 if "ospf" not in res:
                     res["ospf"] = []
@@ -189,10 +205,8 @@ class Net:
                         continue
                     area = line.split("area ")[1].split("\n")[0]
                     net = line.split("network ")[1].split(" ")[0]
-                    if area not in res["ospf"].keys():
-                        res["ospf"] += [{"area": area, "network": net}]
-
-                        changes += 1
+                    res["ospf"] += [{"area": area, "network": net}]
+                    changes += 1
         Console().print("read_vtyshrc", changes)
         Console().print(res)
         return changes, res
@@ -231,10 +245,7 @@ class Net:
 
                     if router not in self.routers.keys():
                         self.routers[router] = {"iface": {port: {"brg": conf["brg"]}}}
-                    if "ospf" in res:
-                        self.routers[router]["iface"][port]["ospf"] = res["ospf"]
-                        continue
-                    if port not in self.routers[router].keys():
+                    if port not in self.routers[router]["iface"].keys():
                         self.routers[router]["iface"][port] = {"brg": conf["brg"]}
                     if len(conf) <= 1:
                         self.routers[router]["iface"][port]["brg"] = self.routers[
@@ -245,7 +256,7 @@ class Net:
                             "brg": self.routers[router]["iface"][port]["brg"],
                             "ip": (
                                 conf["ip"]
-                                if conf["ip"] is not None
+                                if "ip" in conf and conf["ip"] is not None
                                 else (
                                     self.routers[router]["iface"][port]["ip"]
                                     if "ip" in self.routers[router]["iface"][port]
@@ -266,7 +277,6 @@ class Net:
             for port, con in value["iface"].items():
                 if len(con) > 1:
                     if con["brg"] in self.netdict.keys():
-
                         self.routes[router].add_route(
                             {
                                 "Type": "C",
@@ -523,7 +533,6 @@ class Net:
 
                 # print(f"Checking {brg} {self.netdict[brg]['netip']} {conf[1]} {port}")
                 for nextrouter in self.netdict[brg]["routers"]:
-
                     if nextrouter == router:
                         continue
                     neightport = self.get_router_port_from_brdg(nextrouter, brg)
@@ -662,3 +671,24 @@ class Net:
                 ]
             )
         return res
+
+    def set_ip(self, router, iface, ip, apply=False):
+        self.routers[router]["iface"][iface]["ip"] = ip
+        if apply:
+            os.system(
+                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}' -c 'ip address {ip}'"
+            )
+
+    def set_iface_ospf(self, router, iface, p2p, apply=False):
+        self.routers[router]["iface"][iface]["ospf"] = (
+            "point-to-point" if p2p == "y" else ""
+        )
+        if apply:
+            if p2p == "y":
+                os.system(
+                    f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}' -c 'ip ospf point-to-point'"
+                )
+            else:
+                os.system(
+                    f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}' -c 'no ip ospf point-to-point'"
+                )

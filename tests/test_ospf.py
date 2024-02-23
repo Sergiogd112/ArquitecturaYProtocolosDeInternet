@@ -123,10 +123,11 @@ def test_load_ospf(netospf):
                 "eth0": {"brg": "br01", "ip": "10.0.1.225/27"},
                 "eth1": {"brg": "br03", "ip": "10.0.1.98/27"},
                 "eth2": {"brg": "br05", "ip": "10.0.1.162/27"},
+                "lo": {"brg": None},
             },
             "ospf": [
                 {"network": "10.0.1.96/27", "area": "0.0.0.1"},
-                {"network" "10.0.1.160/27" "area" "0.0.0.1"},
+                {"network": "10.0.1.160/27", "area": "0.0.0.1"},
                 {"network": "10.0.1.224/27", "area": "0.0.0.1"},
             ],
         },
@@ -135,9 +136,11 @@ def test_load_ospf(netospf):
                 "eth0": {"brg": "br06"},
                 "eth1": {"brg": "br05"},
                 "eth2": {"brg": "br07"},
-            }
+                "lo": {"brg": None},
+            },
+            "ospf": [],
         },
-        "R06": {"iface": {"eth0": {"brg": "br08"}, "eth1": {"brg": None}}},
+        "R06": {"iface": {"eth0": {"brg": "br08"}, "eth1": {"brg": None}}, "ospf": []},
         "R01": {
             "iface": {
                 "eth0": {"brg": "br02", "ip": "10.0.1.193/27"},

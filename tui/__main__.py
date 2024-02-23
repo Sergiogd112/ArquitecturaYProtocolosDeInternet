@@ -1,10 +1,5 @@
 from tui import TUI
 
-
-def main():
+if __name__ == "__main__":
     tui = TUI()
     tui.lobby()
-
-
-if __name__ == "__main__":
-    main()
