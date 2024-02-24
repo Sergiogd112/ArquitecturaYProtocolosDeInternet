@@ -74,13 +74,10 @@ class Show:
                 tables[-1].add_column(col)
 
             for idx, row in df.iterrows():
-                self.console.print(idx)
-                self.console.print(row)
-                self.console.print(row.values)
-
                 tables[-1].add_row(
                     *([str(idx)] + [val.__repr__() for val in row.values])
                 )
+
             if printout:
                 self.console.print(
                     Panel(
@@ -100,7 +97,8 @@ class Show:
             panel = self.show_router(net, router, conf)
             columns.add_renderable(panel)
         self.console.print(columns)
-    def show_bridge(self,bridge,conf,printout=False):
+
+    def show_bridge(self, bridge, conf, printout=False):
         text = ""
         for key, value in conf.items():
             if type(value) is list:
@@ -113,6 +111,7 @@ class Show:
         if printout:
             self.console.print(panel)
         return panel
+
     def show_bridges(self, net):
         self.console.print("Show bridges")
         columns = Columns(expand=True)
@@ -121,8 +120,7 @@ class Show:
             self.console.print("No bridges found")
             return
         for bridge, conf in net.netdict.items():
-
-            panel = self.show_bridge(bridge,conf)
+            panel = self.show_bridge(bridge, conf)
             columns.add_renderable(panel)
         self.console.print(columns)
 

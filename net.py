@@ -733,6 +733,8 @@ class Net:
                 if len(con) > 1:
                     continue
                 brg = con["brg"]
+                if "netip" not in self.netdict[brg].keys():
+                    continue
                 portip = (
                         int_to_ip(
                             ip_to_int(self.netdict[brg]["netip"])
@@ -765,7 +767,10 @@ class Net:
             )
         self.netdict = self.generate_netdict(self.routers)
 
+
     def set_iface_ospf(self, router, iface, p2p, apply=False):
+        if self.netdict[self.routers[router]["iface"][iface]["brg"]]["routers"] != 2:
+            Console().print("Unable to set ospf on non point-to-point network, there are more than 2 routers connected to the bridge")
         self.routers[router]["iface"][iface]["ospf"] = (
             "point-to-point" if p2p == "y" else ""
         )
@@ -800,3 +805,17 @@ class Net:
             _, commands = self.assign_ips(True)
             for command in commands:
                 os.system(command)
+
+    def set_bridge_connect(self, bridge, router, iface, plug=True, apply=False):
+        if plug:
+            self.routers[router]["iface"][iface]["brg"] = bridge
+            if apply:
+                os.system(f"pluf-if-brg {bridge} {router}-{iface}")
+
+        else:
+            self.routers[router]["iface"][iface]["brg"] = None
+            if apply:
+                os.system(f"unplug-if-brg {bridge} {router}-{iface}")
+
+
+        self.netdict = self.generate_netdict(self.routers)

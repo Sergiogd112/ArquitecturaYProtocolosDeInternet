@@ -253,3 +253,24 @@ class Configure:
                     return
                 case _:
                     self.console.print("Invalid option")
+
+    def configure_ospf_bridge(self, net, bridge):
+        self.console.print("Configure ospf")
+        while True:
+            Show().show_bridge(bridge, net.bridges[bridge], True)
+            area = Prompt.ask(
+                "Select an area",
+                choices=["q", "quit", "c", "create"]
+                        + [x["area"] for _, x in net.bridges[bridge]["ospf"].items()],
+            )
+            if area in ["q", "quit"]:
+                return
+            if area in ["c", "create"]:
+                area = Prompt.ask("Enter the area:")
+
+            net.set_ospf_bridge(bridge, area, True)
+            if len(net.netdict[bridge]["routers"])==2:
+                p2p = Prompt.ask(
+                    "Is it a point-to-point link?", choices=["y", "yes", "n", "no"]
+                )
+                net.set_ospf_bridge_p2p(bridge, p2p, True)
