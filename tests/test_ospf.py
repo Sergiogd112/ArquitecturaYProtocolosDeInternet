@@ -37,7 +37,7 @@ def test_routers_org(netospf):
 
 def test_netdict(netospf):
     net = netospf
-    assert net.netdict is not None
+    assert net.bridges is not None
     expected = {
         "br06": {"routers": ["R04", "R05"], "devcount": 4},
         "br03": {"routers": ["R01", "R02", "R03", "R04"], "devcount": 6},
@@ -48,7 +48,7 @@ def test_netdict(netospf):
         "br08": {"routers": ["R06"], "devcount": 3},
         "br02": {"routers": ["R01"], "devcount": 3},
     }
-    assert net.netdict == expected
+    assert net.bridges == expected
 
 
 def test_load_zebra(netospf):

@@ -279,7 +279,7 @@ class TUI:
         while True:
             amount = Prompt.ask(
                 "Amount of devices",
-                default=self.net.netdict[opt]["devcount"],
+                default=self.net.bridges[opt]["devcount"],
             )
             try:
                 amount = int(amount)
@@ -287,7 +287,7 @@ class TUI:
             except ValueError:
                 self.console.print("Invalid input. Please enter a valid integer.")
 
-        self.net.netdict[opt]["devcount"] = amount
+        self.net.bridges[opt]["devcount"] = amount
         if Prompt.ask("Modify another network?", choices=["y", "n"]) == "y":
             self.modify_devcount(scenario)
 

@@ -126,16 +126,23 @@ class Configure:
             area = Prompt.ask(
                 "Select an area",
                 choices=["q", "quit", "c", "create"]
-                        + [x["area"] for _, x in net.routers[router]["ospf"].items()],
+                        + [x["area"] for x in net.routers[router]["ospf"]],
             )
             if area in ["q", "quit"]:
                 return
             if area in ["c", "create"]:
                 area = Prompt.ask("Enter the area:")
             netip = Prompt.ask(
-                "Enter the network ip/mask", choices=net.get_netips_to_router(router)
+                "Enter the network ip/mask", choices=["all"] + net.get_netips_from_router(router)
             )
-            net.set_ospf(router, area, netip, True)
+            if netip != "all":
+                mask = net.bridges[net.get_brg_with_netip(netip)]["mask"]
+                net.set_ospf(router, area, netip + "/" + str(mask), True)
+                continue
+            for netip in net.get_netips_from_router(router):
+                mask = net.bridges[net.get_brg_with_netip(netip)]["mask"]
+
+                net.set_ospf(router, area, netip + "/" + str(mask), True)
 
     def configure_bgp(self, net, router):
         self.console.print("TODO: Configure bgp")
@@ -234,7 +241,7 @@ class Configure:
         while True:
             src = Prompt.ask(
                 "Enter the source router",
-                choices=["vtrc", "vtyshrc", "brctl", "vtrt", "vtyshrt", "q", "quit"],
+                choices=["vtrc", "vtyshrc", "brctl", "vtrt", "vtyshrt","a","all", "q", "quit"],
             )
             match src:
                 case "vtrc":
@@ -246,6 +253,14 @@ class Configure:
                 case "vtyshrt":
                     net.load_vtyshrt()
                 case "brctl":
+                    net.load_brctl_show()
+                case "a":
+                    net.load_running_config()
+                    net.load_vtyshrt()
+                    net.load_brctl_show()
+                case "all":
+                    net.load_running_config()
+                    net.load_vtyshrt()
                     net.load_brctl_show()
                 case "q":
                     return
@@ -269,8 +284,11 @@ class Configure:
                 area = Prompt.ask("Enter the area:")
 
             net.set_ospf_bridge(bridge, area, True)
-            if len(net.netdict[bridge]["routers"])==2:
+            if len(net.bridges[bridge]["routers"]) == 2:
                 p2p = Prompt.ask(
                     "Is it a point-to-point link?", choices=["y", "yes", "n", "no"]
                 )
                 net.set_ospf_bridge_p2p(bridge, p2p, True)
+
+    def configure_bgp_bridge(self, net, bridge):
+        pass

@@ -65,7 +65,7 @@ def test_dict():
 
 
 def test_generate_netdict(net):
-    assert net.netdict == {
+    assert net.bridges == {
         "br01": {"routers": ["R01"], "devcount": 3},
         "br02": {"routers": ["R01"], "devcount": 3},
         "br03": {"routers": ["R01", "R02"], "devcount": 4},
@@ -110,11 +110,11 @@ def test_generate_netdict(net):
 
 
 def test_assign_subnets(net):
-    net.netdict["br01"]["devcount"] = 2 + 60
-    net.netdict["br02"]["devcount"] = 2 + 20
-    net.netdict["br03"]["devcount"] = 2 + 12
-    net.netdict["br04"]["devcount"] = 2 + 6
-    net.netdict["br05"]["devcount"] = 2 + 6
+    net.bridges["br01"]["devcount"] = 2 + 60
+    net.bridges["br02"]["devcount"] = 2 + 20
+    net.bridges["br03"]["devcount"] = 2 + 12
+    net.bridges["br04"]["devcount"] = 2 + 6
+    net.bridges["br05"]["devcount"] = 2 + 6
     net.assign_subnets("10.0.0.0/24")
     expected = {
         "br01": {
@@ -188,7 +188,7 @@ def test_assign_subnets(net):
             "maxdevices": 8,
         },
     }
-    for key, value in net.netdict.items():
+    for key, value in net.bridges.items():
         print(key)
         pprint(value)
         pprint(expected[key])
@@ -231,11 +231,11 @@ def test_check_ip_used100(net):
 
 
 def test_assign_ips(net):
-    net.netdict["br01"]["devcount"] = 2 + 60
-    net.netdict["br02"]["devcount"] = 2 + 20
-    net.netdict["br03"]["devcount"] = 2 + 12
-    net.netdict["br04"]["devcount"] = 2 + 6
-    net.netdict["br05"]["devcount"] = 2 + 6
+    net.bridges["br01"]["devcount"] = 2 + 60
+    net.bridges["br02"]["devcount"] = 2 + 20
+    net.bridges["br03"]["devcount"] = 2 + 12
+    net.bridges["br04"]["devcount"] = 2 + 6
+    net.bridges["br05"]["devcount"] = 2 + 6
     net.assign_subnets("10.0.0.0/24")
     net.assign_ips()
     expected = {
@@ -286,11 +286,11 @@ def test_assign_ips(net):
 
 
 def test_generate_routes(net):
-    net.netdict["br01"]["devcount"] = 2 + 60
-    net.netdict["br02"]["devcount"] = 2 + 20
-    net.netdict["br03"]["devcount"] = 2 + 12
-    net.netdict["br04"]["devcount"] = 2 + 6
-    net.netdict["br05"]["devcount"] = 2 + 6
+    net.bridges["br01"]["devcount"] = 2 + 60
+    net.bridges["br02"]["devcount"] = 2 + 20
+    net.bridges["br03"]["devcount"] = 2 + 12
+    net.bridges["br04"]["devcount"] = 2 + 6
+    net.bridges["br05"]["devcount"] = 2 + 6
     net.assign_subnets("10.0.0.0/24")
     net.assign_ips()
     net.generate_routes()
@@ -552,8 +552,8 @@ def test_read_scenario(net):
     pprint(net.routers)
     pprint(net2.routers)
     print("=" * get_tty_width())
-    pprint(net.netdict)
-    pprint(net2.netdict)
+    pprint(net.bridges)
+    pprint(net2.bridges)
     print("=" * get_tty_width())
     for router, dev in net.routers.items():
         pprint(router)
@@ -561,11 +561,20 @@ def test_read_scenario(net):
         pprint(net2.routers[router])
         for port, _ in dev.items():
             assert net.routers[router][port] == net2.routers[router][port]
-    for brg, info in net.netdict.items():
+    for brg, info in net.bridges.items():
         pprint(brg)
         pprint(info)
-        pprint(net2.netdict[brg])
-        assert net.netdict[brg] == net2.netdict[brg]
+        pprint(net2.bridges[brg])
+        assert net.bridges[brg] == net2.bridges[brg]
 
     assert net.routers == net2.routers
-    assert net.netdict == net2.netdict
+    assert net.bridges == net2.bridges
+
+
+def test_get_brg_with_netip(net):
+    brg=net.get_brg_with_netip("10.0.0.96")
+    assert brg == "br08"
+    brg=net.get_brg_with_netip("10.0.0.64")
+    assert brg == "br07"
+    brg=net.get_brg_with_netip("10.0.1.128")
+    assert brg == None

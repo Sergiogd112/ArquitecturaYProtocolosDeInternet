@@ -76,24 +76,24 @@ class Show:
                 tables[-1].add_row(
                     *([str(idx)] + [val.__repr__() for val in row.values])
                 )
-
-            if printout:
-                self.console.print(
-                    Panel(
-                        Group(*tables),
-                        title="[bold magenta]" + router + "[/bold magenta]",
-                    )
+            # self.console.print(tables[-1])
+        if printout:
+            self.console.print(
+                Panel(
+                    Group(*tables,fit=True),
+                    title="[bold magenta]" + router + "[/bold magenta]",
                 )
-            return Panel(
-                Group(*tables),
-                title="[bold magenta]" + router + "[/bold magenta]",
             )
+        return Panel(
+            Group(*tables,fit=True),
+            title="[bold magenta]" + router + "[/bold magenta]",
+        )
 
     def show_routers(self, net):
         self.console.print("Show routers")
-        columns = Columns(expand=True)
+        columns = Columns(expand=True, fit=True)
         for router, conf in net.routers.items():
-            panel = self.show_router(net, router, conf)
+            panel = self.show_router(net, router, conf, printout=False)
             columns.add_renderable(panel)
         self.console.print(columns)
 
@@ -115,10 +115,10 @@ class Show:
         self.console.print("Show bridges")
         columns = Columns(expand=True)
         # self.console.print(net.netdict)
-        if len(net.netdict) < 1:
+        if len(net.bridges) < 1:
             self.console.print("No bridges found")
             return
-        for bridge, conf in net.netdict.items():
+        for bridge, conf in net.bridges.items():
             panel = self.show_bridge(bridge, conf)
             columns.add_renderable(panel)
         self.console.print(columns)

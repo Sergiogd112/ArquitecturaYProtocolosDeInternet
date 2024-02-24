@@ -15,7 +15,7 @@ def netlxc():
 
 
 def test_generate_netdict(netlxc):
-    assert netlxc.netdict == {
+    assert netlxc.bridges == {
         "br01": {"routers": ["R01"], "devcount": 3},
         "br02": {"routers": ["R01"], "devcount": 3},
         "br03": {"routers": ["R01", "R02"], "devcount": 4},
@@ -60,11 +60,11 @@ def test_generate_netdict(netlxc):
 
 
 def test_assign_subnets(netlxc):
-    netlxc.netdict["br01"]["devcount"] = 2 + 60
-    netlxc.netdict["br02"]["devcount"] = 2 + 20
-    netlxc.netdict["br03"]["devcount"] = 2 + 12
-    netlxc.netdict["br04"]["devcount"] = 2 + 6
-    netlxc.netdict["br05"]["devcount"] = 2 + 6
+    netlxc.bridges["br01"]["devcount"] = 2 + 60
+    netlxc.bridges["br02"]["devcount"] = 2 + 20
+    netlxc.bridges["br03"]["devcount"] = 2 + 12
+    netlxc.bridges["br04"]["devcount"] = 2 + 6
+    netlxc.bridges["br05"]["devcount"] = 2 + 6
     netlxc.assign_subnets("10.0.0.0/24")
     expected = {
         "br01": {
@@ -138,7 +138,7 @@ def test_assign_subnets(netlxc):
             "maxdevices": 8,
         },
     }
-    for key, value in netlxc.netdict.items():
+    for key, value in netlxc.bridges.items():
         print(key)
         pprint(value)
         pprint(expected[key])
@@ -181,11 +181,11 @@ def test_check_ip_used100(netlxc):
 
 
 def test_assign_ips(netlxc):
-    netlxc.netdict["br01"]["devcount"] = 2 + 60
-    netlxc.netdict["br02"]["devcount"] = 2 + 20
-    netlxc.netdict["br03"]["devcount"] = 2 + 12
-    netlxc.netdict["br04"]["devcount"] = 2 + 6
-    netlxc.netdict["br05"]["devcount"] = 2 + 6
+    netlxc.bridges["br01"]["devcount"] = 2 + 60
+    netlxc.bridges["br02"]["devcount"] = 2 + 20
+    netlxc.bridges["br03"]["devcount"] = 2 + 12
+    netlxc.bridges["br04"]["devcount"] = 2 + 6
+    netlxc.bridges["br05"]["devcount"] = 2 + 6
     netlxc.assign_subnets("10.0.0.0/24")
     netlxc.assign_ips()
     expected = {
@@ -236,11 +236,11 @@ def test_assign_ips(netlxc):
 
 
 def test_generate_routes(netlxc):
-    netlxc.netdict["br01"]["devcount"] = 2 + 60
-    netlxc.netdict["br02"]["devcount"] = 2 + 20
-    netlxc.netdict["br03"]["devcount"] = 2 + 12
-    netlxc.netdict["br04"]["devcount"] = 2 + 6
-    netlxc.netdict["br05"]["devcount"] = 2 + 6
+    netlxc.bridges["br01"]["devcount"] = 2 + 60
+    netlxc.bridges["br02"]["devcount"] = 2 + 20
+    netlxc.bridges["br03"]["devcount"] = 2 + 12
+    netlxc.bridges["br04"]["devcount"] = 2 + 6
+    netlxc.bridges["br05"]["devcount"] = 2 + 6
     netlxc.assign_subnets("10.0.0.0/24")
     netlxc.assign_ips()
     netlxc.generate_routes()
@@ -501,8 +501,8 @@ def test_read_scenario(netlxc):
     pprint(netlxc.routers)
     pprint(net2.routers)
     print("=" * get_tty_width())
-    pprint(netlxc.netdict)
-    pprint(net2.netdict)
+    pprint(netlxc.bridges)
+    pprint(net2.bridges)
     print("=" * get_tty_width())
     for router, dev in netlxc.routers.items():
         pprint(router)
@@ -510,11 +510,11 @@ def test_read_scenario(netlxc):
         pprint(net2.routers[router])
         for port, brdg in dev.items():
             assert netlxc.routers[router][port] == net2.routers[router][port]
-    for brg, info in netlxc.netdict.items():
+    for brg, info in netlxc.bridges.items():
         pprint(brg)
         pprint(info)
-        pprint(net2.netdict[brg])
-        assert netlxc.netdict[brg] == net2.netdict[brg]
+        pprint(net2.bridges[brg])
+        assert netlxc.bridges[brg] == net2.bridges[brg]
 
     assert netlxc.routers == net2.routers
-    assert netlxc.netdict == net2.netdict
+    assert netlxc.bridges == net2.bridges

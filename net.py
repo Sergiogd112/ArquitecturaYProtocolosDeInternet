@@ -20,7 +20,7 @@ class Net:
     def __init__(
             self,
             routers: dict,
-            netdict: Union[dict, None] = None,
+            bridges: Union[dict, None] = None,
             routes: Union[dict, None] = None,
     ):
         """
@@ -36,10 +36,10 @@ class Net:
         Returns:
         None
         """
-        self.netdict = netdict
+        self.bridges = bridges
         self.routers = routers
-        if netdict is None:
-            self.netdict = self.generate_netdict(routers)
+        if bridges is None:
+            self.bridges = self.generate_netdict(routers)
         if routes is None:
             self.routes = {}
             # self.generate_routes(routers)
@@ -68,7 +68,7 @@ class Net:
                     netdict[brg] = {"routers": [router], "devcount": 3}
                 else:
                     netdict[brg]["routers"].append(router)
-                    netdict[brg]["routers"] = sorted(netdict[brg]["routers"])
+                    netdict[brg]["routers"] = sorted(list(set(netdict[brg]["routers"])))
                     netdict[brg]["devcount"] += 1
                 if len(con) > 1 and con["ip"] is not None:
                     netdict[brg]["netip"] = get_net_ip(con["ip"])
@@ -76,10 +76,16 @@ class Net:
                     netdict[brg]["maxdevices"] = 2 ** (32 - netdict[brg]["mask"])
                 if "ospf" in con:
                     netdict[brg]["ospf"] = con["ospf"]
+        # Console().print(netdict)
+        self.bridges = netdict
+        for router, value in routers.items():
+            # Console().print(router)
             if "ospf" in value:
                 for ospf in value["ospf"]:
-                    netdict[self.get_brg_with_netip(ospf["network"])]["ospf"] = ospf
-        self.netdict = netdict
+                    # Console().print(ospf)
+                    # Console().print(self.get_brg_with_netip(ospf["network"].split("/")[0]))
+                    netdict[self.get_brg_with_netip(ospf["network"].split("/")[0])]["ospf"] = ospf
+        self.bridges = netdict
         return netdict
 
     # Load data
@@ -258,26 +264,31 @@ class Net:
             if "ospf" in res:
                 self.routers[router]["ospf"] = res["ospf"]
         # Console().print(self.routers)
-        self.netdict = self.generate_netdict(self.routers)
+        self.bridges = self.generate_netdict(self.routers)
 
     def load_brctl_show(self):
         consoleout = os.popen("brctl show").read()
         pbrg = None
-        for line in consoleout[1:]:
+        for line in consoleout.split("\n")[1:]:
             brg = line.split("\t")[0]
             if brg == "":
                 brg = pbrg
-            router, iface = line.split("\t")[-1].split("-")
-            if brg not in self.netdict.keys():
-                self.netdict[brg] = {"routers": [router], "devcount": 3}
+            # Console().print(line)
+            try:
+                router, iface = line.split("\t")[-1].split("-")
+            except ValueError:
+                continue
+            if brg not in self.bridges.keys():
+                self.bridges[brg] = {"routers": [router], "devcount": 3}
             else:
-                self.netdict[brg]["routers"].append(router)
-                self.netdict[brg]["routers"] = sorted(self.netdict[brg]["routers"])
-                self.netdict[brg]["devcount"] += 1
+                self.bridges[brg]["routers"].append(router)
+                self.bridges[brg]["routers"] = sorted(list(set(self.bridges[brg]["routers"])))
+                self.bridges[brg]["devcount"] += 1
             if router not in self.routers.keys():
                 self.routers[router] = {"iface": {iface: {"brg": brg}}}
             else:
                 self.routers[router]["iface"][iface]["brg"] = brg
+            pbrg = brg
 
     # Getters
     def get_netips_from_router(self, router):
@@ -288,7 +299,11 @@ class Net:
         return netips
 
     def get_brg_with_netip(self, netip):
-        for brg, conf in self.netdict.items():
+        # Console().print(netip)
+        for brg, conf in self.bridges.items():
+            # Console().print(conf)
+            if "netip" not in conf.keys():
+                continue
             if conf["netip"] == netip:
                 return brg
         return None
@@ -315,6 +330,8 @@ class Net:
                 with open(os.path.join(path, el, file), "r", encoding="utf-8") as file:
                     contents = file.read()
                 ch, res = self.read_vtyshrc(contents)
+                # Console().print(router, ch)
+                # Console().print(res)
                 if ch < 1:
                     continue
 
@@ -348,7 +365,7 @@ class Net:
                         }
                 if "ospf" in res:
                     self.routers[router]["ospf"] = res["ospf"]
-        self.netdict = self.generate_netdict(self.routers)
+        self.bridges = self.generate_netdict(self.routers)
 
     def generate_routes(self, routers=None):
         if routers is None:
@@ -358,11 +375,11 @@ class Net:
                 self.routes[router] = RouteTable()
             for port, con in value["iface"].items():
                 if len(con) > 1:
-                    if con["brg"] in self.netdict.keys():
+                    if con["brg"] in self.bridges.keys():
                         self.routes[router].add_route(
                             {
                                 "Type": "C",
-                                "Destination": self.netdict[con["brg"]]["netip"],
+                                "Destination": self.bridges[con["brg"]]["netip"],
                                 "Cost": "0",
                                 "NextHop": "direct connect",
                                 "Interface": port,
@@ -444,7 +461,7 @@ class Net:
 
     def netdic_to_list(self):
         res = []
-        for brg, conf in self.netdict.items():
+        for brg, conf in self.bridges.items():
             res.append(
                 [
                     brg,
@@ -460,7 +477,7 @@ class Net:
             mask = int(mainnetip.split("/")[1])
             mainnetip = mainnetip.split("/")[0]
         ranges = []
-        for _, conf in self.netdict.items():
+        for _, conf in self.bridges.items():
             if "netip" in conf.keys():
                 ranges = ranges + [
                     (
@@ -490,7 +507,7 @@ class Net:
         return self.emptyranges
 
     def check_ip_used(self, ip, brg):
-        for router in self.netdict[brg]["routers"]:
+        for router in self.bridges[brg]["routers"]:
             for _, con in self.routers[router]["iface"].items():
                 if len(con) == 1:
                     continue
@@ -525,7 +542,7 @@ class Net:
                 # print("===" * 20)
 
                 # print(f"Checking {brg} {self.netdict[brg]['netip']} {conf[1]} {port}")
-                for nextrouter in self.netdict[brg]["routers"]:
+                for nextrouter in self.bridges[brg]["routers"]:
                     if nextrouter == router:
                         continue
                     neightport = self.get_router_port_from_brdg(nextrouter, brg)
@@ -534,7 +551,7 @@ class Net:
                     updates = 0
                     # print(f"Checking {nextrouter} {neightport}")
                     for _, route in self.routes[router].table.iterrows():
-                        if route["Destination"] != self.netdict[brg]["netip"]:
+                        if route["Destination"] != self.bridges[brg]["netip"]:
                             updates += int(
                                 self.routes[nextrouter].add_route(
                                     {
@@ -623,7 +640,7 @@ class Net:
                 if len(conf) == 1:
                     continue
                 brg = conf["brg"]
-                for nextrouter in self.netdict[brg]["routers"]:
+                for nextrouter in self.bridges[brg]["routers"]:
                     if nextrouter == router:
                         continue
                     neightport = self.get_router_port_from_brdg(nextrouter, brg)
@@ -659,14 +676,14 @@ class Net:
             mask = int(mainnetip.split("/")[1])
             mainnetip = mainnetip.split("/")[0]
         self.get_usable_ranges(mainnetip, mask)
-        brgs = list(self.netdict.keys())
+        brgs = list(self.bridges.keys())
         brgs = sorted(
-            brgs, key=lambda x: (self.netdict[x]["devcount"], x), reverse=True
+            brgs, key=lambda x: (self.bridges[x]["devcount"], x), reverse=True
         )
 
         tempranges = []
         for brg in brgs:
-            if "netip" in self.netdict[brg].keys():
+            if "netip" in self.bridges[brg].keys():
                 continue
             ranges = sorted(
                 self.emptyranges,
@@ -675,7 +692,7 @@ class Net:
             # print(brg)
             # pprint(self.netdict[brg])
             # Net.print_ranges_with_ip(ranges)
-            mask = 32 - int(np.ceil(np.log2(self.netdict[brg]["devcount"])))
+            mask = 32 - int(np.ceil(np.log2(self.bridges[brg]["devcount"])))
             tempranges = ranges.copy()
 
             # print(mask)
@@ -683,15 +700,15 @@ class Net:
             for n, ran in enumerate(ranges):
                 # print(int_to_ip(ran[0]), int_to_ip(ran[1]), ran[2])
                 if ran[2] == mask:
-                    self.netdict[brg]["netip"] = int_to_ip(ran[0])
-                    self.netdict[brg]["mask"] = mask
-                    self.netdict[brg]["maxdevices"] = 2 ** (32 - mask)
+                    self.bridges[brg]["netip"] = int_to_ip(ran[0])
+                    self.bridges[brg]["mask"] = mask
+                    self.bridges[brg]["maxdevices"] = 2 ** (32 - mask)
                     tempranges.pop(n)
                     break
                 elif ran[2] < mask:
-                    self.netdict[brg]["netip"] = int_to_ip(ran[0])
-                    self.netdict[brg]["mask"] = mask
-                    self.netdict[brg]["maxdevices"] = 2 ** (32 - mask)
+                    self.bridges[brg]["netip"] = int_to_ip(ran[0])
+                    self.bridges[brg]["mask"] = mask
+                    self.bridges[brg]["maxdevices"] = 2 ** (32 - mask)
                     tempranges.pop(n)
                     tempranges += [
                         (
@@ -724,7 +741,7 @@ class Net:
                 raise RuntimeError("No more ranges available")
             # print("===" * 10)
             # print("===" * 10)
-        return self.netdict
+        return self.bridges
 
     def assign_ips(self, apply=False):
         commands = []
@@ -733,23 +750,23 @@ class Net:
                 if len(con) > 1:
                     continue
                 brg = con["brg"]
-                if "netip" not in self.netdict[brg].keys():
+                if "netip" not in self.bridges[brg].keys():
                     continue
                 portip = (
                         int_to_ip(
-                            ip_to_int(self.netdict[brg]["netip"])
-                            + self.netdict[brg]["routers"].index(router)
+                            ip_to_int(self.bridges[brg]["netip"])
+                            + self.bridges[brg]["routers"].index(router)
                             + 1
                         )
                         + "/"
-                        + str(self.netdict[brg]["mask"])
+                        + str(self.bridges[brg]["mask"])
                 )
                 for i in range(
                         ip_to_int(portip.split("/", maxsplit=1)[0]),
                         ip_to_int(get_broadcast(portip)) - 1,
                 ):
                     if not self.check_ip_used(int_to_ip(i), brg):
-                        portip = int_to_ip(i) + "/" + str(self.netdict[brg]["mask"])
+                        portip = int_to_ip(i) + "/" + str(self.bridges[brg]["mask"])
                         break
                 self.routers[router]["iface"][port]["ip"] = portip
                 if apply:
@@ -765,12 +782,12 @@ class Net:
             os.system(
                 f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}' -c 'ip address {ip}'"
             )
-        self.netdict = self.generate_netdict(self.routers)
-
+        self.bridges = self.generate_netdict(self.routers)
 
     def set_iface_ospf(self, router, iface, p2p, apply=False):
-        if self.netdict[self.routers[router]["iface"][iface]["brg"]]["routers"] != 2:
-            Console().print("Unable to set ospf on non point-to-point network, there are more than 2 routers connected to the bridge")
+        if self.bridges[self.routers[router]["iface"][iface]["brg"]]["routers"] != 2:
+            Console().print(
+                "Unable to set ospf on non point-to-point network, there are more than 2 routers connected to the bridge")
         self.routers[router]["iface"][iface]["ospf"] = (
             "point-to-point" if p2p == "y" else ""
         )
@@ -795,12 +812,13 @@ class Net:
         self.routers[router]["ospf"].append({"area": area, "network": netip})
         if apply:
             os.system(
-                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'router ospf 1' -c 'network {netip} area {area}'"
+                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' " +
+                f"-c 'router ospf' -c 'network {netip} area {area}'"
             )
 
     def set_bridge_netip(self, brg, netip, apply=False):
-        self.netdict[brg]["netip"] = netip.split("/")[0]
-        self.netdict[brg]["mask"] = int(netip.split("/")[1])
+        self.bridges[brg]["netip"] = netip.split("/")[0]
+        self.bridges[brg]["mask"] = int(netip.split("/")[1])
         if apply:
             _, commands = self.assign_ips(True)
             for command in commands:
@@ -817,5 +835,4 @@ class Net:
             if apply:
                 os.system(f"unplug-if-brg {bridge} {router}-{iface}")
 
-
-        self.netdict = self.generate_netdict(self.routers)
+        self.bridges = self.generate_netdict(self.routers)
