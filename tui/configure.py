@@ -126,7 +126,7 @@ class Configure:
             area = Prompt.ask(
                 "Select an area",
                 choices=["q", "quit", "c", "create"]
-                + [x["area"] for _, x in net.routers[router]["ospf"].items()],
+                        + [x["area"] for _, x in net.routers[router]["ospf"].items()],
             )
             if area in ["q", "quit"]:
                 return
@@ -141,7 +141,70 @@ class Configure:
         self.console.print("TODO: Configure bgp")
 
     def configure_bridges(self, net):
-        self.console.print("TODO: Configure bridges")
+        self.console.print("Configure bridges")
+        while True:
+            Show().show_bridges(net)
+            self.console.print("Select a bridge")
+            bridge = Prompt.ask(
+                "Select a bridge",
+                choices=["q", "quit"] + list(net.bridges.keys()),
+            )
+            if bridge in ["q", "quit"]:
+                return
+            section = Prompt.ask(
+                "Select a section",
+                choices=["netip", "connect", "ospf", "bgp", "q", "quit"],
+            )
+            match section:
+                case "netip":
+                    self.configure_brg_netip(net, bridge)
+                case "connect":
+                    self.configure_connect(net, bridge=bridge)
+                case "ospf":
+                    self.configure_ospf_bridge(net, bridge)
+                case "bgp":
+                    self.configure_bgp_bridge(net, bridge)
+                case "q":
+                    return
+                case _:
+                    self.console.print("Invalid option")
+
+    def configure_brg_netip(self, net, bridge):
+        self.console.print("Configure netip")
+        while True:
+            Show().show_bridge(bridge, net.bridges[bridge], True)
+            netip = Prompt.ask(
+                "Enter the network ip/mask", choices=net.get_netips_to_bridge(bridge)
+            )
+            net.set_bridge_netip(bridge, netip, apply=True)
+
+    def configure_connect(self, net, bridge=None, router=None, iface=None):
+        self.console.print("Configure connect")
+        while True:
+            if bridge:
+                Show().show_bridge(bridge, net.bridges[bridge], True)
+                router = Prompt.ask(
+                    "Select a router",
+                    choices=["q", "quit"] + list(net.routers.keys()),
+                )
+                if router in ["q", "quit"]:
+                    return
+                iface = Prompt.ask(
+                    "Select an iface",
+                    choices=["q", "quit"] + list(net.routers[router]["iface"].keys()),
+                )
+                if iface in ["q", "quit"]:
+                    return
+                net.set_bridge_connect(bridge, router, iface, apply=True)
+            else:
+                Show().show_router(net, router, net.routers[router], True)
+                bridge = Prompt.ask(
+                    "Select a bridge",
+                    choices=["q", "quit"] + list(net.bridges.keys()),
+                )
+                if bridge in ["q", "quit"]:
+                    return
+                net.set_bridge_connect(bridge, router, iface, apply=True)
 
     def configure_routes(self, net):
         self.console.print("TODO: Configure routes")
@@ -183,7 +246,7 @@ class Configure:
                 case "vtyshrt":
                     net.load_vtyshrt()
                 case "brctl":
-                    net.load_brctl()
+                    net.load_brctl_show()
                 case "q":
                     return
                 case "quit":

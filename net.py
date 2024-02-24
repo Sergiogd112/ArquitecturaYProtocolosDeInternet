@@ -18,10 +18,10 @@ from binmanipulation import getFirstSetBitPos
 
 class Net:
     def __init__(
-        self,
-        routers: dict,
-        netdict: Union[dict, None] = None,
-        routes: Union[dict, None] = None,
+            self,
+            routers: dict,
+            netdict: Union[dict, None] = None,
+            routes: Union[dict, None] = None,
     ):
         """
         Initializes a Net object.
@@ -58,8 +58,8 @@ class Net:
         """
         netdict = {}
         for router, value in routers.items():
-            Console().print(router)
-            Console().print(value)
+            # Console().print(router)
+            # Console().print(value)
             for _, con in value["iface"].items():
                 brg = con["brg"]
                 if brg is None:
@@ -91,12 +91,12 @@ class Net:
 
         if not os.path.isdir(path):
             path = os.path.join("practiques", scenario.split("-")[0], scenario)
-        Console().print(path)
+        # Console().print(path)
         for el in os.listdir(path):
             if (
-                "config" in el
-                and "bak" not in el
-                and os.path.isdir(os.path.join(path, el))
+                    "config" in el
+                    and "bak" not in el
+                    and os.path.isdir(os.path.join(path, el))
             ):
                 break
         else:
@@ -104,7 +104,7 @@ class Net:
         for config in os.listdir(os.path.join(path, el)):
             if "config" in config and "bak" not in config:
                 with open(
-                    os.path.join(path, el, config), "r", encoding="utf-8"
+                        os.path.join(path, el, config), "r", encoding="utf-8"
                 ) as file:
                     contents = file.read()
                 name, conf = Net.lxc_to_router(contents)
@@ -169,7 +169,7 @@ class Net:
             block = block.strip()
             if "" == block:
                 continue
-            Console().print(block)
+            # Console().print(block)
 
             if "interface" in block:
                 name = block.split("interface ")[1].split("\n")[0]
@@ -193,10 +193,10 @@ class Net:
                     res["iface"][name] = {"brg": None}
                     changes += 1
                 for line in block.split("\n")[1:]:
-                    Console().print(line)
+                    # Console().print(line)
                     if "ip address" in line:
                         address = line.split("ip address ")[1].split("\n")[0]
-                        Console().print(address)
+                        # Console().print(address)
                         res["iface"][name] = {"brg": None, "ip": address}
                         changes += 1
                     elif "ip ospf" in line:
@@ -208,15 +208,15 @@ class Net:
                 if "ospf" not in res:
                     res["ospf"] = []
                 for line in block.split("\n")[1:]:
-                    Console().print(line)
+                    # Console().print(line)
                     if "network" not in line:
                         continue
                     area = line.split("area ")[1].split("\n")[0]
                     net = line.split("network ")[1].split(" ")[0]
                     res["ospf"] += [{"area": area, "network": net}]
                     changes += 1
-        Console().print("read_vtyshrc", changes)
-        Console().print(res)
+        # Console().print("read_vtyshrc", changes)
+        # Console().print(res)
         return changes, res
 
     def load_vtyshrt(self, ):
@@ -257,7 +257,7 @@ class Net:
                     self.routers[router]["iface"][iface]["ospf"] = con["ospf"]
             if "ospf" in res:
                 self.routers[router]["ospf"] = res["ospf"]
-        Console().print(self.routers)
+        # Console().print(self.routers)
         self.netdict = self.generate_netdict(self.routers)
 
     def load_brctl_show(self):
@@ -298,12 +298,12 @@ class Net:
         # if this path is not a directory set it to:
         if not os.path.isdir(path):
             path = os.path.join("practiques", escenario.split("-")[0], escenario)
-        Console().print(path)
+        # Console().print(path)
         for el in os.listdir(path):
             if (
-                "config" in el
-                and "bak" not in el
-                and os.path.isdir(os.path.join(path, el))
+                    "config" in el
+                    and "bak" not in el
+                    and os.path.isdir(os.path.join(path, el))
             ):
                 break
         else:
@@ -311,7 +311,7 @@ class Net:
         for file in os.listdir(os.path.join(path, el)):
             if sub in file:
                 router = file.split("_")[1]
-                Console().print(router)
+                # Console().print(router)
                 with open(os.path.join(path, el, file), "r", encoding="utf-8") as file:
                     contents = file.read()
                 ch, res = self.read_vtyshrc(contents)
@@ -319,8 +319,8 @@ class Net:
                     continue
 
                 for port, conf in res["iface"].items():
-                    Console().print(port)
-                    Console().print(conf)
+                    # Console().print(port)
+                    # Console().print(conf)
 
                     if len(conf) < 1:
                         continue
@@ -405,11 +405,11 @@ class Net:
                         ]
                     else:
                         res += (
-                            [(ran[0], broadipintstart, maskstart)]
-                            + Net.fix_ranges(
-                                [(broadipintstart + 1, netipintend - 1, None)]
-                            )
-                            + [(netipintend, ran[1], maskend)]
+                                [(ran[0], broadipintstart, maskstart)]
+                                + Net.fix_ranges(
+                            [(broadipintstart + 1, netipintend - 1, None)]
+                        )
+                                + [(netipintend, ran[1], maskend)]
                         )
                 elif maskstart > maskend:
                     if broadipintstart == ran[1]:
@@ -584,7 +584,7 @@ class Net:
                             # print ERROR in red and bold if the connection fails
                             print(
                                 f"lxc-attach -n {startrouter} -- "
-                                + f"ping -c 1 -W 1 { econ['ip'].split('/')[0]}"
+                                + f"ping -c 1 -W 1 {econ['ip'].split('/')[0]}"
                             )
                             print(
                                 Fore.RED
@@ -734,17 +734,17 @@ class Net:
                     continue
                 brg = con["brg"]
                 portip = (
-                    int_to_ip(
-                        ip_to_int(self.netdict[brg]["netip"])
-                        + self.netdict[brg]["routers"].index(router)
-                        + 1
-                    )
-                    + "/"
-                    + str(self.netdict[brg]["mask"])
+                        int_to_ip(
+                            ip_to_int(self.netdict[brg]["netip"])
+                            + self.netdict[brg]["routers"].index(router)
+                            + 1
+                        )
+                        + "/"
+                        + str(self.netdict[brg]["mask"])
                 )
                 for i in range(
-                    ip_to_int(portip.split("/", maxsplit=1)[0]),
-                    ip_to_int(get_broadcast(portip)) - 1,
+                        ip_to_int(portip.split("/", maxsplit=1)[0]),
+                        ip_to_int(get_broadcast(portip)) - 1,
                 ):
                     if not self.check_ip_used(int_to_ip(i), brg):
                         portip = int_to_ip(i) + "/" + str(self.netdict[brg]["mask"])
@@ -752,7 +752,8 @@ class Net:
                 self.routers[router]["iface"][port]["ip"] = portip
                 if apply:
                     commands.append(
-                        f"lxc-attach -n {router} -- ip addr add {portip} dev {port}"
+                        f"lxc-attach -n {router} -- vtysh -c 'configure terminal'" +
+                        f" -c 'interface {port}' -c 'ip address {portip}'"
                     )
         return self.routers, commands
 
@@ -791,3 +792,11 @@ class Net:
             os.system(
                 f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'router ospf 1' -c 'network {netip} area {area}'"
             )
+
+    def set_bridge_netip(self, brg, netip, apply=False):
+        self.netdict[brg]["netip"] = netip.split("/")[0]
+        self.netdict[brg]["mask"] = int(netip.split("/")[1])
+        if apply:
+            _, commands = self.assign_ips(True)
+            for command in commands:
+                os.system(command)

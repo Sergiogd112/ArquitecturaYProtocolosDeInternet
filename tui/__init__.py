@@ -89,11 +89,12 @@ class TUI:
             )
             tablearr = [
                 ["s", "start", "Start the scenario"],
-                ["r", "restart", "Restart the scenario"],
                 ["st", "stop", "Stop the scenario"],
                 ["ru", "run", "Run the scenario"],
+                ["r", "restart", "Restart the scenario"],
                 ["rr", "restart-run", "Restart and run the scenario"],
                 ["c", "configure", "Configure the scenario and solver type"],
+                ["l", "load", "Load the current configuration"],
                 ["sh", "show", "Show the current configuration"],
                 ["t", "test", "Test the current configuration"],
                 ["q", "quit", "Quit the scenario"],
@@ -121,6 +122,8 @@ class TUI:
                     self.restart_run_scenario(scenario)
                 case "c":
                     self.configure.run(self.net, self.stype)
+                case "l":
+                    self.configure.load_scenario(self.net)
                 case "sh":
                     self.show.show_scenario(self.net)
                 case "t":

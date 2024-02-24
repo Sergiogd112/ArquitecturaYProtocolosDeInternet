@@ -57,12 +57,12 @@ class Show:
                     return
 
     def show_router(
-        self, net: "Net", router: str, conf: dict, printout: bool = False
+            self, net: "Net", router: str, conf: dict, printout: bool = False
     ) -> Panel:
         tables = []
         for sect, block in conf.items():
-            self.console.print(sect)
-            self.console.print(block)
+            # self.console.print(sect)
+            # self.console.print(block)
 
             df = pd.DataFrame(block).T
             if "ospf" in sect:
@@ -100,7 +100,19 @@ class Show:
             panel = self.show_router(net, router, conf)
             columns.add_renderable(panel)
         self.console.print(columns)
-
+    def show_bridge(self,bridge,conf,printout=False):
+        text = ""
+        for key, value in conf.items():
+            if type(value) is list:
+                text += f"- {key}:\n"
+                for i in value:
+                    text += f"  - {i}\n"
+            else:
+                text += f"- {key}: {value}\n"
+        panel = Panel(text, title="[bold magenta]" + bridge + "[/bold magenta]")
+        if printout:
+            self.console.print(panel)
+        return panel
     def show_bridges(self, net):
         self.console.print("Show bridges")
         columns = Columns(expand=True)
@@ -109,16 +121,8 @@ class Show:
             self.console.print("No bridges found")
             return
         for bridge, conf in net.netdict.items():
-            text = ""
-            for key, value in conf.items():
-                if type(value) is list:
-                    text += f"- {key}:\n"
-                    for i in value:
-                        text += f"  - {i}\n"
-                else:
-                    text += f"- {key}: {value}\n"
-            panel = Panel(text, title="[bold magenta]" + bridge + "[/bold magenta]")
 
+            panel = self.show_bridge(bridge,conf)
             columns.add_renderable(panel)
         self.console.print(columns)
 
