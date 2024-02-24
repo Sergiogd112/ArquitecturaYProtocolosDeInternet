@@ -67,7 +67,6 @@ class Show:
             df = pd.DataFrame(block).T
             if "ospf" in sect:
                 df = df.T
-            self.console.print(df)
             tables += [Table(show_header=True, title=sect, header_style="bold magenta")]
             tables[-1].add_column("Key")
             for col in df.columns:
