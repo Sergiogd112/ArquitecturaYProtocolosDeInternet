@@ -171,13 +171,22 @@ class Configure:
         while True:
             src = Prompt.ask(
                 "Enter the source router",
-                choices=["vtrc", "vtyshrc", "brctl", "vtrt", "vtyshrt"],
+                choices=["vtrc", "vtyshrc", "brctl", "vtrt", "vtyshrt", "q", "quit"],
             )
-            if src in ["vtrc", "vtyshrc"]:
-                net.load_vtyshrc()
-            elif src in ["vtrt", "vtyshrt"]:
-                net.load_vtyshrt()
-            elif src in ["brctl"]:
-                net.load_brctl()
-            else:
-                self.console.print("Invalid option")
+            match src:
+                case "vtrc":
+                    net.load_running_config()
+                case "vtyshrc":
+                    net.load_running_config()
+                case "vtrt":
+                    net.load_vtyshrt()
+                case "vtyshrt":
+                    net.load_vtyshrt()
+                case "brctl":
+                    net.load_brctl()
+                case "q":
+                    return
+                case "quit":
+                    return
+                case _:
+                    self.console.print("Invalid option")

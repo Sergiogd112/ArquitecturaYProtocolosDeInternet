@@ -27,7 +27,7 @@ class TUI:
         self.stype = ""
         self.net = None
         self.show = Show()
-        self.configure = Configure()
+        self.configure = None
 
     def lobby(self):
         self.net = None
@@ -59,21 +59,22 @@ class TUI:
                 scenario.split("-")[1]
                 for scenario in os.listdir(os.path.join(ppath, pract))
                 if os.path.isdir(os.path.join(ppath, pract, scenario))
-                and "E" in scenario
-                and "backup" not in scenario
+                   and "E" in scenario
+                   and "backup" not in scenario
             ]
             scneario = (
-                pract
-                + "-E"
-                + Prompt.ask(
-                    "Select a scenario in {}".format(pract),
-                    choices=[scneario.split("E")[1] for scneario in scenarios],
-                )
+                    pract
+                    + "-E"
+                    + Prompt.ask(
+                "Select a scenario in {}".format(pract),
+                choices=[scneario.split("E")[1] for scneario in scenarios],
+            )
             )
             self.scenario_state(scneario)
 
     def scenario_state(self, scenario):
         self.net = Net.read_scenario(scenario)
+        self.configure = Configure(scenario)
         self.show.show_routers(self.net)
         while True:
             self.console.print(

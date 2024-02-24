@@ -45,6 +45,7 @@ class Net:
             # self.generate_routes(routers)
         self.emptyranges = []
 
+    # Preprocessing
     def generate_netdict(self, routers: dict) -> dict:
         """
         Generate a network dictionary based on the given routers.
@@ -69,7 +70,7 @@ class Net:
                     netdict[brg]["routers"].append(router)
                     netdict[brg]["routers"] = sorted(netdict[brg]["routers"])
                     netdict[brg]["devcount"] += 1
-                if len(con) > 1:
+                if len(con) > 1 and con["ip"] is not None:
                     netdict[brg]["netip"] = get_net_ip(con["ip"])
                     netdict[brg]["mask"] = int(con["ip"].split("/")[1])
                     netdict[brg]["maxdevices"] = 2 ** (32 - netdict[brg]["mask"])
@@ -77,18 +78,19 @@ class Net:
                     netdict[brg]["ospf"] = con["ospf"]
             if "ospf" in value:
                 for ospf in value["ospf"]:
-                    netdict[brg]["ospf"] = ospf
+                    netdict[self.get_brg_with_netip(ospf["network"])]["ospf"] = ospf
         self.netdict = netdict
         return netdict
 
+    # Load data
     @staticmethod
-    def read_scenario(escenario: str) -> "Net":
+    def read_scenario(scenario: str) -> "Net":
         routers = {}
-        path = "/home/api/practiques/" + escenario.split("-")[0] + "/" + escenario
+        path = "/home/api/practiques/" + scenario.split("-")[0] + "/" + scenario
         # if this path is not a directory set it to:
 
         if not os.path.isdir(path):
-            path = os.path.join("practiques", escenario.split("-")[0], escenario)
+            path = os.path.join("practiques", scenario.split("-")[0], scenario)
         Console().print(path)
         for el in os.listdir(path):
             if (
@@ -217,19 +219,19 @@ class Net:
         Console().print(res)
         return changes, res
 
-    def load_vtyshrt(self, escenario: str):
+    def load_vtyshrt(self, ):
         for router, routes in self.routes.items():
             console_out = os.popen(
                 f"lxc-attach -n {router} -- vtysh -c 'show ip route'"
             ).read()
             routes.loads_vtysh_routes(console_out)
 
-    def load_running_config(self, escenario: str):
+    def load_running_config(self):
         for router, conf in self.routers.items():
             # get the vtysh running config
             consoleout = os.popen(
                 f"lxc-attach -n {router} -- vtysh -c 'show running'"
-            ).read()
+            ).read().split("end")[0]
             ch, res = self.read_vtyshrc(consoleout)
             if ch < 1:
                 continue
@@ -255,6 +257,7 @@ class Net:
                     self.routers[router]["iface"][iface]["ospf"] = con["ospf"]
             if "ospf" in res:
                 self.routers[router]["ospf"] = res["ospf"]
+        Console().print(self.routers)
         self.netdict = self.generate_netdict(self.routers)
 
     def load_brctl_show(self):
@@ -276,12 +279,19 @@ class Net:
             else:
                 self.routers[router]["iface"][iface]["brg"] = brg
 
+    # Getters
     def get_netips_from_router(self, router):
         netips = []
         for _, conf in self.routers[router]["iface"].items():
             if len(conf) > 1:
                 netips.append(get_net_ip(conf["ip"]))
         return netips
+
+    def get_brg_with_netip(self, netip):
+        for brg, conf in self.netdict.items():
+            if conf["netip"] == netip:
+                return brg
+        return None
 
     def read_scenario_subconfigs(self, escenario: str, sub: str):
         path = "/home/api/practiques/" + escenario.split("-")[0] + "/" + escenario
@@ -365,6 +375,12 @@ class Net:
 
         return self.routes
 
+    def get_router_port_from_brdg(self, router, brg):
+        for port, con in self.routers[router]["iface"].items():
+            if con["brg"] == brg:
+                return port
+        return None
+
     @staticmethod
     def fix_ranges(ranges: list) -> list:
         res = []
@@ -426,6 +442,19 @@ class Net:
 
         return res
 
+    def netdic_to_list(self):
+        res = []
+        for brg, conf in self.netdict.items():
+            res.append(
+                [
+                    brg,
+                    conf["devcount"],
+                    conf["routers"],
+                ]
+            )
+        return res
+
+    # Helpers
     def get_usable_ranges(self, mainnetip, mask=None):
         if mask is None:
             mask = int(mainnetip.split("/")[1])
@@ -460,89 +489,6 @@ class Net:
 
         return self.emptyranges
 
-    @staticmethod
-    def print_ranges_with_ip(ranges: list):
-        for ran in ranges:
-            print(int_to_ip(ran[0]), int_to_ip(ran[1]), ran[2])
-
-    def assign_subnets(self, mainnetip, mask=None):
-        if mask is None:
-            mask = int(mainnetip.split("/")[1])
-            mainnetip = mainnetip.split("/")[0]
-        self.get_usable_ranges(mainnetip, mask)
-        brgs = list(self.netdict.keys())
-        brgs = sorted(
-            brgs, key=lambda x: (self.netdict[x]["devcount"], x), reverse=True
-        )
-
-        tempranges = []
-        for brg in brgs:
-            if "netip" in self.netdict[brg].keys():
-                continue
-            ranges = sorted(
-                self.emptyranges,
-                key=lambda x: x[2],
-            )
-            # print(brg)
-            # pprint(self.netdict[brg])
-            # Net.print_ranges_with_ip(ranges)
-            mask = 32 - int(np.ceil(np.log2(self.netdict[brg]["devcount"])))
-            tempranges = ranges.copy()
-
-            # print(mask)
-
-            for n, ran in enumerate(ranges):
-                # print(int_to_ip(ran[0]), int_to_ip(ran[1]), ran[2])
-                if ran[2] == mask:
-                    self.netdict[brg]["netip"] = int_to_ip(ran[0])
-                    self.netdict[brg]["mask"] = mask
-                    self.netdict[brg]["maxdevices"] = 2 ** (32 - mask)
-                    tempranges.pop(n)
-                    break
-                elif ran[2] < mask:
-                    self.netdict[brg]["netip"] = int_to_ip(ran[0])
-                    self.netdict[brg]["mask"] = mask
-                    self.netdict[brg]["maxdevices"] = 2 ** (32 - mask)
-                    tempranges.pop(n)
-                    tempranges += [
-                        (
-                            ip_to_int(get_broadcast(int_to_ip(ran[0]), mask)) + 1,
-                            ran[1],
-                            None,
-                        )
-                    ]
-                    self.emptyranges = Net.fix_ranges(tempranges)
-
-                    # print("===" * 10)
-                    # Net.print_ranges_with_ip(ranges)
-                    # print("===" * 10)
-                    # Net.print_ranges_with_ip(
-                    #     [
-                    #         (
-                    #             ip_to_int(get_broadcast(int_to_ip(ran[0]), mask)) + 1,
-                    #             ran[1],
-                    #             None,
-                    #         )
-                    #     ]
-                    # )
-                    # print("===" * 10)
-
-                    ranges = sorted(ranges, key=lambda x: x[2])
-                    # Net.print_ranges_with_ip(ranges)
-                    # pprint(self.netdict[brg])
-                    break
-            else:
-                raise RuntimeError("No more ranges available")
-            # print("===" * 10)
-            # print("===" * 10)
-        return self.netdict
-
-    def get_router_port_from_brdg(self, router, brg):
-        for port, con in self.routers[router]["iface"].items():
-            if con["brg"] == brg:
-                return port
-        return None
-
     def check_ip_used(self, ip, brg):
         for router in self.netdict[brg]["routers"]:
             for _, con in self.routers[router]["iface"].items():
@@ -554,35 +500,10 @@ class Net:
                     return True
         return False
 
-    def assign_ips(self, apply=False):
-        commands = []
-        for router, value in self.routers.items():
-            for port, con in value["iface"].items():
-                if len(con) > 1:
-                    continue
-                brg = con["brg"]
-                portip = (
-                    int_to_ip(
-                        ip_to_int(self.netdict[brg]["netip"])
-                        + self.netdict[brg]["routers"].index(router)
-                        + 1
-                    )
-                    + "/"
-                    + str(self.netdict[brg]["mask"])
-                )
-                for i in range(
-                    ip_to_int(portip.split("/", maxsplit=1)[0]),
-                    ip_to_int(get_broadcast(portip)) - 1,
-                ):
-                    if not self.check_ip_used(int_to_ip(i), brg):
-                        portip = int_to_ip(i) + "/" + str(self.netdict[brg]["mask"])
-                        break
-                self.routers[router]["iface"][port]["ip"] = portip
-                if apply:
-                    commands.append(
-                        f"lxc-attach -n {router} -- ip addr add {portip} dev {port}"
-                    )
-        return self.routers, commands
+    @staticmethod
+    def print_ranges_with_ip(ranges: list):
+        for ran in ranges:
+            print(int_to_ip(ran[0]), int_to_ip(ran[1]), ran[2])
 
     def generate_non_direct_routes(self, unconfigured=None):
         if unconfigured is None:
@@ -732,17 +653,108 @@ class Net:
             print(router)
             routes.check_table()
 
-    def netdic_to_list(self):
-        res = []
-        for brg, conf in self.netdict.items():
-            res.append(
-                [
-                    brg,
-                    conf["devcount"],
-                    conf["routers"],
-                ]
+    # Setters
+    def assign_subnets(self, mainnetip, mask=None):
+        if mask is None:
+            mask = int(mainnetip.split("/")[1])
+            mainnetip = mainnetip.split("/")[0]
+        self.get_usable_ranges(mainnetip, mask)
+        brgs = list(self.netdict.keys())
+        brgs = sorted(
+            brgs, key=lambda x: (self.netdict[x]["devcount"], x), reverse=True
+        )
+
+        tempranges = []
+        for brg in brgs:
+            if "netip" in self.netdict[brg].keys():
+                continue
+            ranges = sorted(
+                self.emptyranges,
+                key=lambda x: x[2],
             )
-        return res
+            # print(brg)
+            # pprint(self.netdict[brg])
+            # Net.print_ranges_with_ip(ranges)
+            mask = 32 - int(np.ceil(np.log2(self.netdict[brg]["devcount"])))
+            tempranges = ranges.copy()
+
+            # print(mask)
+
+            for n, ran in enumerate(ranges):
+                # print(int_to_ip(ran[0]), int_to_ip(ran[1]), ran[2])
+                if ran[2] == mask:
+                    self.netdict[brg]["netip"] = int_to_ip(ran[0])
+                    self.netdict[brg]["mask"] = mask
+                    self.netdict[brg]["maxdevices"] = 2 ** (32 - mask)
+                    tempranges.pop(n)
+                    break
+                elif ran[2] < mask:
+                    self.netdict[brg]["netip"] = int_to_ip(ran[0])
+                    self.netdict[brg]["mask"] = mask
+                    self.netdict[brg]["maxdevices"] = 2 ** (32 - mask)
+                    tempranges.pop(n)
+                    tempranges += [
+                        (
+                            ip_to_int(get_broadcast(int_to_ip(ran[0]), mask)) + 1,
+                            ran[1],
+                            None,
+                        )
+                    ]
+                    self.emptyranges = Net.fix_ranges(tempranges)
+
+                    # print("===" * 10)
+                    # Net.print_ranges_with_ip(ranges)
+                    # print("===" * 10)
+                    # Net.print_ranges_with_ip(
+                    #     [
+                    #         (
+                    #             ip_to_int(get_broadcast(int_to_ip(ran[0]), mask)) + 1,
+                    #             ran[1],
+                    #             None,
+                    #         )
+                    #     ]
+                    # )
+                    # print("===" * 10)
+
+                    ranges = sorted(ranges, key=lambda x: x[2])
+                    # Net.print_ranges_with_ip(ranges)
+                    # pprint(self.netdict[brg])
+                    break
+            else:
+                raise RuntimeError("No more ranges available")
+            # print("===" * 10)
+            # print("===" * 10)
+        return self.netdict
+
+    def assign_ips(self, apply=False):
+        commands = []
+        for router, value in self.routers.items():
+            for port, con in value["iface"].items():
+                if len(con) > 1:
+                    continue
+                brg = con["brg"]
+                portip = (
+                    int_to_ip(
+                        ip_to_int(self.netdict[brg]["netip"])
+                        + self.netdict[brg]["routers"].index(router)
+                        + 1
+                    )
+                    + "/"
+                    + str(self.netdict[brg]["mask"])
+                )
+                for i in range(
+                    ip_to_int(portip.split("/", maxsplit=1)[0]),
+                    ip_to_int(get_broadcast(portip)) - 1,
+                ):
+                    if not self.check_ip_used(int_to_ip(i), brg):
+                        portip = int_to_ip(i) + "/" + str(self.netdict[brg]["mask"])
+                        break
+                self.routers[router]["iface"][port]["ip"] = portip
+                if apply:
+                    commands.append(
+                        f"lxc-attach -n {router} -- ip addr add {portip} dev {port}"
+                    )
+        return self.routers, commands
 
     def set_ip(self, router, iface, ip, apply=False):
         self.routers[router]["iface"][iface]["ip"] = ip
