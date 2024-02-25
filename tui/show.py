@@ -91,7 +91,7 @@ class Show:
 
     def show_routers(self, net):
         self.console.print("Show routers")
-        columns = Columns(expand=True, fit=True)
+        columns = Columns(expand=True)
         for router, conf in net.routers.items():
             panel = self.show_router(net, router, conf, printout=False)
             columns.add_renderable(panel)
@@ -151,6 +151,7 @@ class Show:
         self.console.print("Show routes")
         columns = Columns(expand=True)
         for router, routes in net.routes.items():
+            self.console.print(router)
             columns.add_renderable(routes.format_table())
         self.console.print(columns)
 

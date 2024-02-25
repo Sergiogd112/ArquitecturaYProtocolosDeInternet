@@ -246,22 +246,33 @@ class Configure:
             match src:
                 case "vtrc":
                     net.load_running_config()
+                    Show().show_routers(net)
                 case "vtyshrc":
                     net.load_running_config()
+                    Show().show_routers(net)
                 case "vtrt":
                     net.load_vtyshrt()
+                    Show().show_routes(net)
                 case "vtyshrt":
+                    Show().show_routes(net)
                     net.load_vtyshrt()
                 case "brctl":
                     net.load_brctl_show()
+                    Show().show_bridges(net)
                 case "a":
                     net.load_running_config()
+                    Show().show_routers(net)
                     net.load_vtyshrt()
+                    Show().show_routes(net)
                     net.load_brctl_show()
+                    Show().show_bridges(net)
                 case "all":
                     net.load_running_config()
+                    Show().show_routers(net)
                     net.load_vtyshrt()
+                    Show().show_routes(net)
                     net.load_brctl_show()
+                    Show().show_bridges(net)
                 case "q":
                     return
                 case "quit":

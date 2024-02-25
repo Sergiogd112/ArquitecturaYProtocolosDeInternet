@@ -146,6 +146,8 @@ class TUI:
         if len(starts) == 1:
             os.system(starts[0])
         self.console.print("Select a start script")
+        if self.net is None:
+            self.net = Net.read_scenario(scenario)
         while True:
             table = Table(
                 title="Start scripts",
@@ -175,6 +177,7 @@ class TUI:
     def stop_scenario(self, scenario):
         self.console.print("Stopping scenario: " + scenario)
         os.system(f"{scenario}-stop")
+        self.net = None
 
     def restart_scenario(self, scenario):
         self.console.print("Restarting scenario: " + scenario)
@@ -229,26 +232,7 @@ class TUI:
         self.net.apply_configuration()
         self.console.print("Static configuration applied")
         if Prompt.ask("Test the configuration?", choices=["y", "n"]) == "y":
-            working, total = self.net.check_all_connections(True)
-            if working == total:
-                panel = Panel(
-                    Text(
-                        f"Working: {working} Total: {total} percentage: {working / total * 100:.2f}%:check-mark:",
-                        justify="center",
-                    ),
-                    style="bold green",
-                    title="Test result",
-                )
-            else:
-                panel = Panel(
-                    Text(
-                        f"Working: {working} Total: {total} percentage: {working / total * 100:.2f}%:cross_mark:",
-                        justify="center",
-                    ),
-                    style="bold red",
-                    title="Test result",
-                )
-            self.console.print(panel)
+            self.check_scenario()
 
     def modify_devcount(self, scenario):
         self.console.print("Modify devcount")
@@ -266,12 +250,12 @@ class TUI:
         # self.console.print(self.net.netdict)
         # self.console.print(self.net.netdic_to_list())
         # self.console.print(self.net.netdic_to_list())
-        for row in self.net.netdic_to_list():
+        for row in self.net.bridges_to_list():
             table.add_row(*[cell.__repr__() for cell in row])
         self.console.print(table)
         opt = Prompt.ask(
             "Select a network to modify",
-            choices=[row[0] for row in self.net.netdic_to_list()],
+            choices=[row[0] for row in self.net.bridges_to_list()],
         )
         self.console.print("Selected: " + opt)
         # ask for the ammount of devices (larger than 2 or the current amount of devices)
@@ -301,7 +285,26 @@ class TUI:
         pass
 
     def check_scenario(self):
-        self.net.check_all_connections(True)
+        working, total = self.net.check_all_connections(True)
+        if working == total:
+            panel = Panel(
+                Text(
+                    f"Working: {working} Total: {total} percentage: {working / total * 100:.2f}% :check-mark:",
+                    justify="center",
+                ),
+                style="bold green",
+                title="Test result",
+            )
+        else:
+            panel = Panel(
+                Text(
+                    f"Working: {working} Total: {total} percentage: {working / total * 100:.2f}%:cross_mark:",
+                    justify="center",
+                ),
+                style="bold red",
+                title="Test result",
+            )
+        self.console.print(panel)
 
 
 if __name__ == "__main__":
