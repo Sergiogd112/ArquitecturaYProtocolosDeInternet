@@ -57,7 +57,7 @@ class Show:
                     return
 
     def show_router(
-            self, net: "Net", router: str, conf: dict, printout: bool = False
+        self, net: "Net", router: str, conf: dict, printout: bool = False
     ) -> Panel:
         tables = []
         for sect, block in conf.items():
@@ -80,12 +80,12 @@ class Show:
         if printout:
             self.console.print(
                 Panel(
-                    Group(*tables,fit=True),
+                    Group(*tables, fit=True),
                     title="[bold magenta]" + router + "[/bold magenta]",
                 )
             )
         return Panel(
-            Group(*tables,fit=True),
+            Group(*tables, fit=True),
             title="[bold magenta]" + router + "[/bold magenta]",
         )
 
@@ -152,7 +152,7 @@ class Show:
         columns = Columns(expand=True)
         for router, routes in net.routes.items():
             self.console.print(router)
-            columns.add_renderable(routes.format_table())
+            columns.add_renderable(Panel(routes.format_table(), title=router))
         self.console.print(columns)
 
     def show_vtyshrc(self, net):
