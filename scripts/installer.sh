@@ -33,4 +33,4 @@ else
 fi
 poetry update
 echo "Project installed"
-echo "To run the project, run the command 'poetry run python3 main.py'"
+echo "To run the project, run the command 'poetry run python3.8 main.py'"
