@@ -6,7 +6,7 @@ authors = ["Sergio Gomez Damas"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-matplotlib = "^3.8.2"
+matplotlib = "^3.7.5"
 numpy = "^1.22.0"
 pandas = "^2.0.0"
 rich = "^12.6.0"
