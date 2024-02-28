@@ -2,10 +2,19 @@
 # This is an installer script for the project
 echo "Installing the project"
 echo "Installing python3"
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get update
-sudo apt-get install python3.5 git python3-pip -y
+sudo apt update
+sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev wget
 
+wget https://www.python.org/ftp/python/3.7.4/Python-3.7.4.tgz
+sudo tar xzf Python-3.7.4.tgz
+
+cd Python-3.7.4
+
+sudo ./configure
+sudo make
+sudo make install
+cd
+sudo apt install git
 echo "Installing poetry"
 
 python3 -m pip install poetry
