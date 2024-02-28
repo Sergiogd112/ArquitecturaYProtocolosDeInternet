@@ -8,6 +8,7 @@ import networkx as nx
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.progress import track, Progress
+from rich.panel import Panel
 
 from route import RouteTable
 from ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
@@ -16,10 +17,10 @@ from binmanipulation import getFirstSetBitPos
 
 class Net:
     def __init__(
-            self,
-            routers: dict,
-            bridges: Union[dict, None] = None,
-            routes: Union[dict, None] = None,
+        self,
+        routers: dict,
+        bridges: Union[dict, None] = None,
+        routes: Union[dict, None] = None,
     ):
         """
         Initializes a Net object.
@@ -82,24 +83,35 @@ class Net:
                 for ospf in value["ospf"]:
                     # Console().print(ospf)
                     # Console().print(self.get_brg_with_netip(ospf["network"].split("/")[0]))
-                    bridge = bridges[self.get_brg_with_netip(ospf["network"].split("/")[0])]
+                    bridge = bridges[
+                        self.get_brg_with_netip(ospf["network"].split("/")[0])
+                    ]
                     bridge["ospf"] = ospf
 
                     if "p2p" in value and value["p2p"]:
                         if len(bridge["routers"]) != 2:
-                            Console().print("Error: p2p ospf network in bridge with more than 2 routers")
+                            Console().print(
+                                "Error: p2p ospf network in bridge with more than 2 routers"
+                            )
                             continue
                         if bridge["routers"][0] != router:
-                            if self.routers[bridge["routers"][0]]["iface"][
-                                self.get_router_port_from_brdg(bridge["routers"][0], bridge)][
-                                "ospf"] == "network point-to-point":
+                            if (
+                                self.routers[bridge["routers"][0]]["iface"][
+                                    self.get_router_port_from_brdg(
+                                        bridge["routers"][0], bridge
+                                    )
+                                ]["ospf"]
+                                == "network point-to-point"
+                            ):
                                 bridge["routers"] = [router, bridge["routers"][0]]
                         continue
                     for crouter in bridge["routers"]:
                         if crouter not in routers.keys():
                             continue
                         if "ospf" not in routers[crouter]:
-                            opt = Prompt.ask("Do you want to enable OSPF in " + crouter + "? (y/n)")
+                            opt = Prompt.ask(
+                                "Do you want to enable OSPF in " + crouter + "? (y/n)"
+                            )
                             if opt == "y":
                                 self.set_ospf(crouter, ospf["area"], ospf["network"])
                             else:
@@ -110,31 +122,47 @@ class Net:
 
     # Load data
     @staticmethod
-    def read_scenario(scenario: str) -> "Net":
+    def read_scenario(scenario: str, pract="") -> "Net":
         routers = {}
-        path = "/home/api/practiques/" + scenario.split("-")[0] + "/" + scenario
+        if pract == "":
+            path = "/home/api/practiques/" + scenario.split("-")[0] + "/" + scenario
+        else:
+            path = "/home/api/practiques/" + pract + "/" + scenario
         # if this path is not a directory set it to:
 
         if not os.path.isdir(path):
             path = os.path.join("practiques", scenario.split("-")[0], scenario)
-        # Console().print(path)
-        for el in os.listdir(path):
-            if (
+        el = ""
+        if "A" not in pract:
+            # Console().print(path)
+            for el in os.listdir(path):
+                if (
                     "config" in el
                     and "bak" not in el
                     and os.path.isdir(os.path.join(path, el))
-            ):
-                break
-        else:
-            raise FileNotFoundError("No config directory found")
-        for config in os.listdir(os.path.join(path, el)):
-            if "config" in config and "bak" not in config:
-                with open(
+                ):
+                    break
+            else:
+
+                raise FileNotFoundError("No config directory found")
+            for config in os.listdir(os.path.join(path, el)):
+                Console().print(Panel(config))
+                if "config" in config and "bak" not in config:
+                    with open(
                         os.path.join(path, el, config), "r", encoding="utf-8"
-                ) as file:
-                    contents = file.read()
-                name, conf = Net.lxc_to_router(contents)
-                routers[name] = conf
+                    ) as file:
+                        contents = file.read()
+                    name, conf = Net.lxc_to_router(contents)
+                    routers[name] = conf
+        else:
+            for el in os.listdir(os.path.join(path)):
+                if os.path.isfile(os.path.join(path, el, "config")):
+                    with open(
+                        os.path.join(path, el, "config"), "r", encoding="utf-8"
+                    ) as file:
+                        contents = file.read()
+                    name, conf = Net.lxc_to_router(contents)
+                    routers[name] = conf
         return Net(routers)
 
     @staticmethod
@@ -245,7 +273,9 @@ class Net:
         # Console().print(res)
         return changes, res
 
-    def load_vtyshrt(self, ):
+    def load_vtyshrt(
+        self,
+    ):
         for router, _ in self.routers.items():
             console_out = os.popen(
                 f"lxc-attach -n {router} -- vtysh -c 'show ip route'"
@@ -257,9 +287,11 @@ class Net:
     def load_running_config(self):
         for router, conf in self.routers.items():
             # get the vtysh running config
-            consoleout = os.popen(
-                f"lxc-attach -n {router} -- vtysh -c 'show running'"
-            ).read().split("end")[0]
+            consoleout = (
+                os.popen(f"lxc-attach -n {router} -- vtysh -c 'show running'")
+                .read()
+                .split("end")[0]
+            )
             ch, res = self.read_vtyshrc(consoleout)
             if ch < 1:
                 continue
@@ -301,6 +333,8 @@ class Net:
             brg = line.split("\t")[0]
             if brg == "":
                 brg = pbrg
+            if brg not in self.bridges.keys():
+                self.bridges[brg] = {"routers": [], "devcount": 0}
             # Console().print(line)
             try:
                 router, iface = line.split("\t")[-1].split("-")
@@ -310,7 +344,9 @@ class Net:
                 self.bridges[brg] = {"routers": [router], "devcount": 3}
             else:
                 self.bridges[brg]["routers"].append(router)
-                self.bridges[brg]["routers"] = sorted(list(set(self.bridges[brg]["routers"])))
+                self.bridges[brg]["routers"] = sorted(
+                    list(set(self.bridges[brg]["routers"]))
+                )
                 self.bridges[brg]["devcount"] += 1
             if router not in self.routers.keys():
                 self.routers[router] = {"iface": {iface: {"brg": brg}}}
@@ -344,9 +380,9 @@ class Net:
         # Console().print(path)
         for el in os.listdir(path):
             if (
-                    "config" in el
-                    and "bak" not in el
-                    and os.path.isdir(os.path.join(path, el))
+                "config" in el
+                and "bak" not in el
+                and os.path.isdir(os.path.join(path, el))
             ):
                 break
         else:
@@ -450,11 +486,11 @@ class Net:
                         ]
                     else:
                         res += (
-                                [(ran[0], broadipintstart, maskstart)]
-                                + Net.fix_ranges(
-                            [(broadipintstart + 1, netipintend - 1, None)]
-                        )
-                                + [(netipintend, ran[1], maskend)]
+                            [(ran[0], broadipintstart, maskstart)]
+                            + Net.fix_ranges(
+                                [(broadipintstart + 1, netipintend - 1, None)]
+                            )
+                            + [(netipintend, ran[1], maskend)]
                         )
                 elif maskstart > maskend:
                     if broadipintstart == ran[1]:
@@ -617,13 +653,14 @@ class Net:
         else:
             iterator = enumerate(self.routers.items())
         for i, startrouter in iterator:
-            for j, (endrouter, endvalue) in enumerate(self.routers.items()):
+            for j, endrouter in enumerate(sorted(list(self.routers.keys()))):
+                endvalue = self.routers[endrouter]
                 # if startrouter == endrouter:
                 #     continue
                 cons = 0
                 for _, econ in endvalue["iface"].items():
 
-                    if len(econ) > 1:
+                    if len(econ) > 1 and econ["ip"] is not None:
                         check = self.check_connection(
                             startrouter, econ["ip"].split("/")[0]
                         )
@@ -648,7 +685,10 @@ class Net:
                         #     )
                         cons += 1
                         res[i, j] += int(check)
-                res[i, j] = res[i, j] / np.float64(cons)
+                if cons > 0:
+                    res[i, j] = res[i, j] / np.float64(cons)
+                else:
+                    res[i, j] = 1
         Console().print(res)
         return np.float64(np.sum(res)), np.float64(len(self.routers.keys()) ** 2)
 
@@ -784,17 +824,17 @@ class Net:
                 if "netip" not in self.bridges[brg].keys():
                     continue
                 portip = (
-                        int_to_ip(
-                            ip_to_int(self.bridges[brg]["netip"])
-                            + self.bridges[brg]["routers"].index(router)
-                            + 1
-                        )
-                        + "/"
-                        + str(self.bridges[brg]["mask"])
+                    int_to_ip(
+                        ip_to_int(self.bridges[brg]["netip"])
+                        + self.bridges[brg]["routers"].index(router)
+                        + 1
+                    )
+                    + "/"
+                    + str(self.bridges[brg]["mask"])
                 )
                 for i in range(
-                        ip_to_int(portip.split("/", maxsplit=1)[0]),
-                        ip_to_int(get_broadcast(portip)) - 1,
+                    ip_to_int(portip.split("/", maxsplit=1)[0]),
+                    ip_to_int(get_broadcast(portip)) - 1,
                 ):
                     if not self.check_ip_used(int_to_ip(i), brg):
                         portip = int_to_ip(i) + "/" + str(self.bridges[brg]["mask"])
@@ -802,8 +842,8 @@ class Net:
                 self.routers[router]["iface"][port]["ip"] = portip
                 if apply:
                     commands.append(
-                        f"lxc-attach -n {router} -- vtysh -c 'configure terminal'" +
-                        f" -c 'interface {port}' -c 'ip address {portip}'"
+                        f"lxc-attach -n {router} -- vtysh -c 'configure terminal'"
+                        + f" -c 'interface {port}' -c 'ip address {portip}'"
                     )
         return self.routers, commands
 
@@ -817,11 +857,17 @@ class Net:
 
     def set_iface_ospf(self, router, iface, p2p, apply=False):
         Console().print(router, iface, p2p, apply)
-        Console().print(self.routers[router]["iface"][iface]["brg"],
-                        self.bridges[self.routers[router]["iface"][iface]["brg"]]["routers"])
-        if len(self.bridges[self.routers[router]["iface"][iface]["brg"]]["routers"]) != 2:
+        Console().print(
+            self.routers[router]["iface"][iface]["brg"],
+            self.bridges[self.routers[router]["iface"][iface]["brg"]]["routers"],
+        )
+        if (
+            len(self.bridges[self.routers[router]["iface"][iface]["brg"]]["routers"])
+            != 2
+        ):
             Console().print(
-                "Unable to set ospf on non point-to-point network, there are more than 2 routers connected to the bridge")
+                "Unable to set ospf on non point-to-point network, there are more than 2 routers connected to the bridge"
+            )
             return
         self.routers[router]["iface"][iface]["ospf"] = (
             "point-to-point" if p2p == "y" else ""
@@ -834,13 +880,13 @@ class Net:
         if apply:
             if p2p == "y":
                 os.system(
-                    f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}'" +
-                    " -c 'ip ospf network point-to-point'"
+                    f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}'"
+                    + " -c 'ip ospf network point-to-point'"
                 )
             else:
                 os.system(
-                    f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}'" +
-                    " -c 'no ip ospf network point-to-point'"
+                    f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}'"
+                    + " -c 'no ip ospf network point-to-point'"
                 )
 
     def set_ospf(self, router, area, netip, apply=False):
@@ -849,8 +895,8 @@ class Net:
         self.routers[router]["ospf"].append({"area": area, "network": netip})
         if apply:
             os.system(
-                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' " +
-                f"-c 'router ospf' -c 'network {netip} area {area}'"
+                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' "
+                + f"-c 'router ospf' -c 'network {netip} area {area}'"
             )
 
     def set_bridge_netip(self, brg, netip, apply=False):

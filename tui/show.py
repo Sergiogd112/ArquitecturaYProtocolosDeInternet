@@ -92,7 +92,8 @@ class Show:
     def show_routers(self, net):
         self.console.print("Show routers")
         columns = Columns(expand=True)
-        for router, conf in net.routers.items():
+        for router in sorted(list(net.routers.keys())):
+            conf = net.routers[router]
             panel = self.show_router(net, router, conf, printout=False)
             columns.add_renderable(panel)
         self.console.print(columns)
@@ -118,7 +119,8 @@ class Show:
         if len(net.bridges) < 1:
             self.console.print("No bridges found")
             return
-        for bridge, conf in net.bridges.items():
+        for bridge in sorted(list(net.bridges.keys())):
+            conf = net.bridges[bridge]
             panel = self.show_bridge(bridge, conf)
             columns.add_renderable(panel)
         self.console.print(columns)
@@ -142,8 +144,11 @@ class Show:
             row = [cell.strip() for cell in line.split("\t") if cell != ""]
             if "lxc" in row[0]:
                 row += [""] * (len(headers) - len(row))
-            if len(row) < len(headers):
+            if len(row) < len(headers) and "br" not in row[0]:
                 row = [""] * (len(headers) - len(row)) + row
+            elif len(row) < len(headers) and "br" in row[0]:
+                row = row + [""] * (len(headers) - len(row))
+
             table.add_row(*row)
         self.console.print(table)
 
@@ -158,7 +163,7 @@ class Show:
     def show_vtyshrc(self, net):
         self.console.print("Show vtyshrc")
         columns = Columns(expand=True)
-        for router, _ in net.routers.items():
+        for router in sorted(list(net.routers.keys())):
             consoleout = run(
                 ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show running"],
                 capture_output=True,
@@ -175,7 +180,7 @@ class Show:
     def show_vtyshrt(self, net):
         self.console.print("Show vtyshrt")
         columns = Columns(expand=True)
-        for router, _ in net.routers.items():
+        for router in sorted(list(net.routers.keys())):
             consoleout = run(
                 ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip route"],
                 capture_output=True,

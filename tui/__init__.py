@@ -56,24 +56,28 @@ class TUI:
                 exit()
             pract = "P" + pract
             scenarios = [
-                scenario.split("-")[1]
+                scenario
                 for scenario in os.listdir(os.path.join(ppath, pract))
                 if os.path.isdir(os.path.join(ppath, pract, scenario))
-                   and "E" in scenario
-                   and "backup" not in scenario
+                and "E" in scenario
+                and "backup" not in scenario
             ]
-            scneario = (
-                    pract
-                    + "-E"
-                    + Prompt.ask(
-                "Select a scenario in {}".format(pract),
-                choices=[scneario.split("E")[1] for scneario in scenarios],
-            )
-            )
-            self.scenario_state(scneario)
 
-    def scenario_state(self, scenario):
-        self.net = Net.read_scenario(scenario)
+            scneario = (
+                scenarios[0].split("E")[0]
+                + "E"
+                + Prompt.ask(
+                    "Select a scenario in {}".format(pract),
+                    choices=[scneario.split("E")[1] for scneario in scenarios],
+                )
+            )
+            if "A" in pract:
+                self.scenario_state(scneario,pract)
+            else:
+                self.scenario_state(scneario,pract="")
+
+    def scenario_state(self, scenario,pract):
+        self.net = Net.read_scenario(scenario,pract)
         self.configure = Configure(scenario)
         self.show.show_routers(self.net)
         while True:

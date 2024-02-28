@@ -65,7 +65,7 @@ class Configure:
             self.console.print("Select a router")
             router = Prompt.ask(
                 "Select a router",
-                choices=net.routers.keys(),
+                choices=sorted(list(net.routers.keys())),
             )
             section = Prompt.ask(
                 "Select a section",
@@ -126,14 +126,15 @@ class Configure:
             area = Prompt.ask(
                 "Select an area",
                 choices=["q", "quit", "c", "create"]
-                        + [x["area"] for x in net.routers[router]["ospf"]],
+                + [x["area"] for x in net.routers[router]["ospf"]],
             )
             if area in ["q", "quit"]:
                 return
             if area in ["c", "create"]:
                 area = Prompt.ask("Enter the area:")
             netip = Prompt.ask(
-                "Enter the network ip/mask", choices=["all"] + net.get_netips_from_router(router)
+                "Enter the network ip/mask",
+                choices=["all"] + net.get_netips_from_router(router),
             )
             if netip != "all":
                 mask = net.bridges[net.get_brg_with_netip(netip)]["mask"]
@@ -154,7 +155,7 @@ class Configure:
             self.console.print("Select a bridge")
             bridge = Prompt.ask(
                 "Select a bridge",
-                choices=["q", "quit"] + list(net.bridges.keys()),
+                choices=["q", "quit"] + sorted(list(net.bridges.keys())),
             )
             if bridge in ["q", "quit"]:
                 return
@@ -241,7 +242,17 @@ class Configure:
         while True:
             src = Prompt.ask(
                 "Enter the source router",
-                choices=["vtrc", "vtyshrc", "brctl", "vtrt", "vtyshrt","a","all", "q", "quit"],
+                choices=[
+                    "vtrc",
+                    "vtyshrc",
+                    "brctl",
+                    "vtrt",
+                    "vtyshrt",
+                    "a",
+                    "all",
+                    "q",
+                    "quit",
+                ],
             )
             match src:
                 case "vtrc":
@@ -287,7 +298,7 @@ class Configure:
             area = Prompt.ask(
                 "Select an area",
                 choices=["q", "quit", "c", "create"]
-                        + [x["area"] for _, x in net.bridges[bridge]["ospf"].items()],
+                + [x["area"] for _, x in net.bridges[bridge]["ospf"].items()],
             )
             if area in ["q", "quit"]:
                 return

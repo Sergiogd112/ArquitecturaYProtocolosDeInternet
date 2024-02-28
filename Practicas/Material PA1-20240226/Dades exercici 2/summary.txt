@@ -1,0 +1,201 @@
+
+       OSPF Router with ID (192.168.1.1)
+
+
+                Summary Link States (Area 0.0.0.0)
+
+  LS age: 1134
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x3  
+  LS Type: summary-LSA
+  Link State ID: 10.1.0.0 (summary Network Number)
+  Advertising Router: 192.168.1.1
+  LS Seq Number: 80000005
+  Checksum: 0xa211
+  Length: 28
+  Network Mask: /22
+        TOS: 0  Metric: 50
+
+  LS age: 1323
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.1.0.0 (summary Network Number)
+  Advertising Router: 192.168.1.2
+  LS Seq Number: 80000002
+  Checksum: 0x3b84
+  Length: 28
+  Network Mask: /30
+        TOS: 0  Metric: 40
+
+  LS age: 793
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.1.0.4 (summary Network Number)
+  Advertising Router: 192.168.1.2
+  LS Seq Number: 80000002
+  Checksum: 0x4a85
+  Length: 28
+  Network Mask: /30
+        TOS: 0  Metric: 20
+
+  LS age: 1163
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.1.0.8 (summary Network Number)
+  Advertising Router: 192.168.1.2
+  LS Seq Number: 80000003
+  Checksum: 0xa335
+  Length: 28
+  Network Mask: /29
+        TOS: 0  Metric: 10
+
+  LS age: 1223
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.1.1.0 (summary Network Number)
+  Advertising Router: 192.168.1.2
+  LS Seq Number: 80000002
+  Checksum: 0xdde7
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 30
+
+  LS age: 1533
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.1.2.0 (summary Network Number)
+  Advertising Router: 192.168.1.2
+  LS Seq Number: 80000002
+  Checksum: 0x6e60
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 20
+
+  LS age: 1233
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.1.3.0 (summary Network Number)
+  Advertising Router: 192.168.1.2
+  LS Seq Number: 80000002
+  Checksum: 0x636a
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 20
+
+  LS age: 1499
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.2.0.0 (summary Network Number)
+  Advertising Router: 192.168.1.4
+  LS Seq Number: 80000002
+  Checksum: 0x08cf
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 10
+
+  LS age: 1237
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.3.0.0 (summary Network Number)
+  Advertising Router: 192.168.1.3
+  LS Seq Number: 80000003
+  Checksum: 0xffd6
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 10
+
+
+                Summary Link States (Area 0.0.0.1)
+
+  LS age: 1164
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.1.0.0 (summary Network Number)
+  Advertising Router: 192.168.1.2
+  LS Seq Number: 80000003
+  Checksum: 0x05a5
+  Length: 28
+  Network Mask: /22
+        TOS: 0  Metric: 60
+
+  LS age: 114
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x3  
+  LS Type: summary-LSA
+  Link State ID: 10.2.0.0 (summary Network Number)
+  Advertising Router: 192.168.1.1
+  LS Seq Number: 80000003
+  Checksum: 0x7c53
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 20
+
+  LS age: 1304
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.2.0.0 (summary Network Number)
+  Advertising Router: 192.168.1.2
+  LS Seq Number: 80000002
+  Checksum: 0x7857
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 20
+
+  LS age: 784
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x3  
+  LS Type: summary-LSA
+  Link State ID: 10.3.0.0 (summary Network Number)
+  Advertising Router: 192.168.1.1
+  LS Seq Number: 80000002
+  Checksum: 0x725d
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 20
+
+  LS age: 1304
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.3.0.0 (summary Network Number)
+  Advertising Router: 192.168.1.2
+  LS Seq Number: 80000002
+  Checksum: 0x6c62
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 20
+
+  LS age: 1185
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x3  
+  LS Type: summary-LSA
+  Link State ID: 192.168.1.0 (summary Network Number)
+  Advertising Router: 192.168.1.1
+  LS Seq Number: 80000003
+  Checksum: 0xf585
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 10
+
+  LS age: 1234
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 192.168.1.0 (summary Network Number)
+  Advertising Router: 192.168.1.2
+  LS Seq Number: 80000003
+  Checksum: 0xef8a
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 10
+
