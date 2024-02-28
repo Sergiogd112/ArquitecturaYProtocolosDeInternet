@@ -26,7 +26,7 @@ if [ -f "01-create-containers" ]; then
     echo "Codebase already cloned. Moving on to the next step."
     cd ..
 else
-    git clone https://github.com/Sergiogd112/ArquitecturaYProtocolosDeInternet.git
+    git clone --depth 1 https://github.com/Sergiogd112/ArquitecturaYProtocolosDeInternet.git
     echo "Codebase cloned"
     cd ArquitecturaYProtocolosDeInternet
 fi
