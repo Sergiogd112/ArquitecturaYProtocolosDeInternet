@@ -17,7 +17,7 @@ cd
 sudo apt install git
 echo "Installing poetry"
 
-python3 -m pip install poetry
+python3.8 -m pip install poetry
 poetry completions bash >>~/.bash_completion
 source ~/.bash_completion
 # check if the file "01-create-containers is in the directory"
