@@ -8,7 +8,7 @@ sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-
 wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz
 sudo tar xzf Python-3.10.0.tgz
 
-cd Python-3.10.0.tgz
+cd Python-3.10.0
 
 sudo ./configure
 sudo make
