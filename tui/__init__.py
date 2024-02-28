@@ -113,29 +113,28 @@ class TUI:
 
             option = Prompt.ask(">>>", choices=[row[0] for row in tablearr])
             print(option)
-            match option:
-                case "s":
-                    self.start_scenario(scenario)
-                case "r":
-                    self.restart_scenario(scenario)
-                case "st":
-                    self.stop_scenario(scenario)
-                case "ru":
-                    self.run_scenario(scenario)
-                case "rr":
-                    self.restart_run_scenario(scenario)
-                case "c":
-                    self.configure.run(self.net, self.stype)
-                case "l":
-                    self.configure.load_scenario(self.net)
-                case "sh":
-                    self.show.show_scenario(self.net)
-                case "t":
-                    self.check_scenario()
-                case "q":
-                    return
-                case _:
-                    self.console.print("Invalid option")
+            if option == "s":
+                self.start_scenario(scenario)
+            elif option == "r":
+                self.restart_scenario(scenario)
+            elif option == "st":
+                self.stop_scenario(scenario)
+            elif option == "ru":
+                self.run_scenario(scenario)
+            elif option == "rr":
+                self.restart_run_scenario(scenario)
+            elif option == "c":
+                self.configure.run(self.net, self.stype)
+            elif option == "l":
+                self.configure.load_scenario(self.net)
+            elif option == "sh":
+                self.show.show_scenario(self.net)
+            elif option == "t":
+                self.check_scenario()
+            elif option == "q":
+                return
+            else:
+                self.console.print("Invalid option")
 
     def start_scenario(self, scenario):
         self.console.print("Starting scenario: " + scenario)
@@ -193,15 +192,14 @@ class TUI:
         if self.stype == "":
             self.console.print("Solver type not selected")
             self.configure_scenario()
-        match self.stype:
-            case "static":
-                self.run_static(scenario)
-            case "rip":
-                self.run_rip(scenario)
-            case "ospf":
-                self.run_ospf(scenario)
-            case "bgp":
-                self.run_bgp(scenario)
+        if self.stype == "static":
+            self.run_static(scenario)
+        elif self.stype == "rip":
+            self.run_rip(scenario)
+        elif self.stype == "ospf":
+            self.run_ospf(scenario)
+        elif self.stype == "bgp":
+            self.run_bgp(scenario)
 
     def configure_scenario(self):
         self.console.print("Configure scenario")

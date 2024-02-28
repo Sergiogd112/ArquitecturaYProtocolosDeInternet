@@ -30,33 +30,20 @@ class Configure:
                     "quit",
                 ],
             )
-            match opt:
-                case "r":
-                    self.configure_routers(net)
-                case "routers":
-                    self.configure_routers(net)
-                case "b":
-                    self.configure_bridges(net)
-                case "bridges":
-                    self.configure_bridges(net)
-                case "rt":
-                    self.configure_routes(net)
-                case "routes":
-                    self.configure_routes(net)
-                case "solver":
-                    stype = self.configure_solver(stype)
-                case "l":
-                    self.load_scenario(net)
-                case "load":
-                    self.load_scenario(
-                        net,
-                    )
-                case "q":
-                    return net, stype
-                case "quit":
-                    return net, stype
-                case _:
-                    self.console.print("Invalid option")
+            if opt == "r" or opt == "routers":
+                self.configure_routers(net)
+            elif opt == "b" or opt == "bridges":
+                self.configure_bridges(net)
+            elif opt == "rt" or opt == "routes":
+                self.configure_routes(net)
+            elif opt == "solver":
+                stype = self.configure_solver(stype)
+            elif opt == "l" or opt == "load":
+                self.load_scenario(net)
+            elif opt == "q" or opt == "quit":
+                return net, stype
+            else:
+                self.console.print("Invalid option")
 
     def configure_routers(self, net):
         self.console.print("Configure routers")
@@ -72,15 +59,14 @@ class Configure:
                 choices=["iface", "ospf", "bgp"],
             )
             Show().show_router(net, router, net.routers[router], True)
-            match section:
-                case "iface":
-                    self.configure_iface(net, router)
-                case "ospf":
-                    self.configure_ospf(net, router)
-                case "bgp":
-                    self.configure_bgp(net, router)
-                case _:
-                    self.console.print("Invalid option")
+            if section == "iface":
+                self.configure_iface(net, router)
+            elif section == "ospf":
+                self.configure_ospf(net, router)
+            elif section == "bgp":
+                self.configure_bgp(net, router)
+            else:
+                self.console.print("Invalid option")
             self.console.print("Do you want to configure another router?")
             opt = Prompt.ask(
                 "Select an option",
@@ -106,18 +92,17 @@ class Configure:
             )
             if opt in ["q", "quit"]:
                 continue
-            match opt:
-                case "ip":
-                    ip = Prompt.ask("Enter the ip/mask[10.0.0.3/24]:")
-                    self.console.print(
-                        f"Setting iface {iface} with ip {ip} on router {router}"
-                    )
-                    net.set_ip(router, iface, ip, True)
-                case "ospf":
-                    p2p = Prompt.ask(
-                        "Is it a point-to-point link?", choices=["y", "yes", "n", "no"]
-                    )
-                    net.set_iface_ospf(router, iface, p2p, True)
+            if opt == "ip":
+                ip = Prompt.ask("Enter the ip/mask[10.0.0.3/24]:")
+                self.console.print(
+                    f"Setting iface {iface} with ip {ip} on router {router}"
+                )
+                net.set_ip(router, iface, ip, True)
+            elif opt == "ospf":
+                p2p = Prompt.ask(
+                    "Is it a point-to-point link?", choices=["y", "yes", "n", "no"]
+                )
+                net.set_iface_ospf(router, iface, p2p, True)
 
     def configure_ospf(self, net, router):
         self.console.print("Configure ospf")
@@ -163,19 +148,18 @@ class Configure:
                 "Select a section",
                 choices=["netip", "connect", "ospf", "bgp", "q", "quit"],
             )
-            match section:
-                case "netip":
-                    self.configure_brg_netip(net, bridge)
-                case "connect":
-                    self.configure_connect(net, bridge=bridge)
-                case "ospf":
-                    self.configure_ospf_bridge(net, bridge)
-                case "bgp":
-                    self.configure_bgp_bridge(net, bridge)
-                case "q":
-                    return
-                case _:
-                    self.console.print("Invalid option")
+            if section == "netip":
+                self.configure_brg_netip(net, bridge)
+            elif section == "connect":
+                self.configure_connect(net, bridge=bridge)
+            elif section == "ospf":
+                self.configure_ospf_bridge(net, bridge)
+            elif section == "bgp":
+                self.configure_bgp_bridge(net, bridge)
+            elif section == "q":
+                return
+            else:
+                self.console.print("Invalid option")
 
     def configure_brg_netip(self, net, bridge):
         self.console.print("Configure netip")
@@ -254,42 +238,33 @@ class Configure:
                     "quit",
                 ],
             )
-            match src:
-                case "vtrc":
-                    net.load_running_config()
-                    Show().show_routers(net)
-                case "vtyshrc":
-                    net.load_running_config()
-                    Show().show_routers(net)
-                case "vtrt":
-                    net.load_vtyshrt()
-                    Show().show_routes(net)
-                case "vtyshrt":
-                    Show().show_routes(net)
-                    net.load_vtyshrt()
-                case "brctl":
-                    net.load_brctl_show()
-                    Show().show_bridges(net)
-                case "a":
-                    net.load_running_config()
-                    Show().show_routers(net)
-                    net.load_vtyshrt()
-                    Show().show_routes(net)
-                    net.load_brctl_show()
-                    Show().show_bridges(net)
-                case "all":
-                    net.load_running_config()
-                    Show().show_routers(net)
-                    net.load_vtyshrt()
-                    Show().show_routes(net)
-                    net.load_brctl_show()
-                    Show().show_bridges(net)
-                case "q":
-                    return
-                case "quit":
-                    return
-                case _:
-                    self.console.print("Invalid option")
+            if src == "vtrc":
+                net.load_running_config()
+                Show().show_routers(net)
+            elif src == "vtyshrc":
+                net.load_running_config()
+                Show().show_routers(net)
+            elif src == "vtrt":
+                net.load_vtyshrt()
+                Show().show_routes(net)
+            elif src == "vtyshrt":
+                Show().show_routes(net)
+                net.load_vtyshrt()
+            elif src == "brctl":
+                net.load_brctl_show()
+                Show().show_bridges(net)
+            elif src == "a" or src == "all":
+                net.load_running_config()
+                Show().show_routers(net)
+                net.load_vtyshrt()
+                Show().show_routes(net)
+                net.load_brctl_show()
+                Show().show_bridges(net)
+
+            elif src in ["q", "quit"]:
+                return
+            else:
+                self.console.print("Invalid option")
 
     def configure_ospf_bridge(self, net, bridge):
         self.console.print("Configure ospf")

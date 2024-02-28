@@ -36,25 +36,20 @@ class Show:
                     "quit",
                 ],
             )
-            match opt:
-                case "r":
-                    self.show_routers(net)
-                case "routers":
-                    self.show_routers(net)
-                case "b":
-                    self.show_bridges(net)
-                case "bridges":
-                    self.show_bridges(net)
-                case "brctl":
-                    self.show_brctl(net)
-                case "rt":
-                    self.show_routes(net)
-                case "vrc":
-                    self.show_vtyshrc(net)
-                case "vrt":
-                    self.show_vtyshrt(net)
-                case "q":
-                    return
+            if opt == "r" or opt == "routers":
+                self.show_routers(net)
+            elif opt == "b" or opt == "bridges":
+                self.show_bridges(net)
+            elif opt == "brctl":
+                self.show_brctl(net)
+            elif opt == "rt":
+                self.show_routes(net)
+            elif opt == "vrc":
+                self.show_vtyshrc(net)
+            elif opt == "vrt":
+                self.show_vtyshrt(net)
+            elif opt == "q":
+                return
 
     def show_router(
         self, net: "Net", router: str, conf: dict, printout: bool = False
