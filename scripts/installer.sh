@@ -4,15 +4,15 @@ echo "Installing the project"
 echo "Installing python3"
 sudo apt update
 sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev wget
-
-wget https://www.python.org/ftp/python/3.8.18/Python-3.8.18.tgz
-sudo tar xzf Python-3.8.18.tgz
-
-cd Python-3.8.18
-
-sudo ./configure
-sudo make
-sudo make install
+sudo apt-get install build-essential checkinstall
+sudo apt-get install libreadline-gplv2-dev libncursesw5-dev libssl-dev \
+    libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev
+cd /opt
+sudo wget https://www.python.org/ftp/python/3.8.12/Python-3.8.12.tgz
+sudo tar xzf Python-3.8.12.tgz
+cd Python-3.8.12
+sudo ./configure --enable-optimizations
+sudo make altinstall
 cd
 sudo apt install git
 echo "Installing poetry"
