@@ -8,8 +8,7 @@ sudo apt-get install python3.5 git -y
 
 echo "Installing poetry"
 
-curl -sSL https://install.python-poetry.org | python3.5 -
-
+curl -sSL https://install.python-poetry.org | python3 -
 # check if the file "01-create-containers is in the directory"
 if [ -f "01-create-containers" ]; then
     echo "Codebase already cloned. Moving on to the next step."
