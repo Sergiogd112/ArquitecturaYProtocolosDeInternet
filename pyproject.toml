@@ -5,7 +5,7 @@ description = ""
 authors = ["Sergio Gomez Damas"]
 
 [tool.poetry.dependencies]
-python = "^3.5"
+python = "^3.7"
 matplotlib = "^3.8.2"
 numpy = "^1.22.0"
 pandas = "^2.2.0"
