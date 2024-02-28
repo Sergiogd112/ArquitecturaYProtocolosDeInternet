@@ -4,11 +4,11 @@ echo "Installing the project"
 echo "Installing python3"
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
-sudo apt-get install python3.10 git -y
+sudo apt-get install python3.5 git -y
 
 echo "Installing poetry"
 
-curl -sSL https://install.python-poetry.org | python3.10 -
+curl -sSL https://install.python-poetry.org | python3.5 -
 
 # check if the file "01-create-containers is in the directory"
 if [ -f "01-create-containers" ]; then
