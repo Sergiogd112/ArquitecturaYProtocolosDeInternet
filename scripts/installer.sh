@@ -5,10 +5,10 @@ echo "Installing python3"
 sudo apt update
 sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev wget
 
-wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz
-sudo tar xzf Python-3.10.0.tgz
+wget https://www.python.org/ftp/python/3.8.18/Python-3.8.18.tgz
+sudo tar xzf Python-3.8.18.tgz
 
-cd Python-3.10.0
+cd Python-3.8.18
 
 sudo ./configure
 sudo make
