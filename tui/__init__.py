@@ -229,7 +229,9 @@ class TUI:
         for command in commands:
             os.system(command)
         self.net.generate_routes()
-        self.net.generate_non_direct_routes()
+        opt=Prompt.ask("Generate non direct routes?",choices=["y","n"],default="n")
+        if opt=="y":
+            self.net.generate_non_direct_routes()
         self.net.check_routes()
         self.net.apply_configuration()
         self.console.print("Static configuration applied")
@@ -278,13 +280,15 @@ class TUI:
             self.modify_devcount(scenario)
 
     def run_rip(self, scenario):
-        pass
+        self.console.print("TODO: RIP configuration")
 
     def run_ospf(self, scenario):
-        pass
+        
+        self.console.print("TODO: OSPF configuration")
 
     def run_bgp(self, scenario):
-        pass
+        self.console.print("TODO: BGP configuration")
+        
 
     def check_scenario(self):
         working, total = self.net.check_all_connections(True)
