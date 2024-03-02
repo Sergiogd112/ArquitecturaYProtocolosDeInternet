@@ -166,7 +166,7 @@ class Net:
         return Net(routers)
 
     @staticmethod
-    def lxc_to_router(text: str) -> Tuple[str, dict]:
+    def lxc_to_router_new(text: str) -> Tuple[str, dict]:
         # Your code here
         text = text.strip()
         # get the uts.name
@@ -196,6 +196,45 @@ class Net:
             else:
                 netcondict["iface"][name] = {"brg": brg}
         return utsname, netcondict
+
+    @staticmethod
+    def lxc_to_router_old(text: str) -> Tuple[str, dict]:
+        # Your code here
+        text = text.strip()
+        # get the uts.name
+        utsname = text.split("lxc.utsname = ")[1].split("\n")[0]
+        # get the network configuration
+        netconf = text.split("# Network configuration")[1].split("\n\n")
+        netcondict = {"iface": {}}
+        # console = Console()
+        # console.print("\n\n".join(netconf))
+        for block in netconf:
+            if len(block) == 0:
+                continue
+            # get the name of the interface
+
+            name = block.split(".name = ")[1].split("\n")[0].strip()
+            try:
+                brg = block.split(".link = ")[1].split("\n")[0].strip()
+            except IndexError:
+                brg = None
+            if "address" in block:
+                # get the ip address
+                address = block.split("address = ")[1].split("\n")[0].strip()
+                netcondict["iface"][name] = {
+                    "brg": brg,
+                    "ip": address,
+                }
+            else:
+                netcondict["iface"][name] = {"brg": brg}
+        return utsname, netcondict
+
+    @staticmethod
+    def lxc_to_router(text: str) -> Tuple[str, dict]:
+        if "uts.name" in text:
+            return Net.lxc_to_router_new(text)
+        else:
+            return Net.lxc_to_router_old(text)
 
     def read_vtyshrc(self, contents: str) -> Tuple[int, dict]:
         """example contents:
