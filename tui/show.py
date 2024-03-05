@@ -219,7 +219,7 @@ class Show:
         columns = Columns(expand=True)
         areas=net.get_ospf_areas()
         for area in sorted(list(areas.keys())):
-            router=area[0]
+            router=areas[area][0]
             consoleout = run(
                 [
                     "lxc-attach",
@@ -232,7 +232,7 @@ class Show:
                 ],
                 capture_output=True,
                 text=True,
-                check=True,
+                # check=True,
             ).stdout
             columns.add_renderable(
                 Panel(
@@ -247,7 +247,7 @@ class Show:
         columns = Columns(expand=True)
         areas=net.get_ospf_areas()
         for area in sorted(list(areas.keys())):
-            router=area[0]
+            router=areas[area][0]
             consoleout = run(
                 [
                     "lxc-attach",
@@ -260,7 +260,7 @@ class Show:
                 ],
                 capture_output=True,
                 text=True,
-                check=True,
+                # check=True,
             ).stdout
             columns.add_renderable(
                 Panel(
@@ -274,7 +274,7 @@ class Show:
         columns = Columns(expand=True)
         areas=net.get_ospf_areas()
         for area in sorted(list(areas.keys())):
-            router=area[0]
+            router=areas[area][0]
             consoleout = run(
                 [
                     "lxc-attach",
@@ -287,7 +287,7 @@ class Show:
                 ],
                 capture_output=True,
                 text=True,
-                check=True,
+                # check=True,
             ).stdout
             columns.add_renderable(
                 Panel(

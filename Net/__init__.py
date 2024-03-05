@@ -216,7 +216,7 @@ class Net:
                 return port
         return None
 
-    def get_ospf_areas(self):
+    def get_ospf_areas(self) -> dict:
         """
         Get the OSPF areas for the network.
 
@@ -230,7 +230,8 @@ class Net:
                     if ospf["area"] not in areas:
                         areas[ospf["area"]] = [router]
                     else:
-                        areas[ospf["area"]] += [router]
+                        areas[ospf["area"]] = list(set(areas[ospf["area"]] + [router]))
+        Console().print(areas)
         return areas
 
     def bridges_to_list(self):
