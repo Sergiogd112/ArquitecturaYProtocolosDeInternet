@@ -59,7 +59,7 @@ class Configure:
                 "Select a section",
                 choices=["iface", "ospf", "bgp"],
             )
-            Show().show_router(net, router, net.routers[router], True)
+            Show().show_router( router, net.routers[router], True)
             if section == "iface":
                 self.configure_iface(net, router)
             elif section == "ospf":
@@ -79,7 +79,7 @@ class Configure:
     def configure_iface(self, net, router):
         self.console.print("Configure iface")
         while True:
-            Show().show_router(net, router, net.routers[router], True)
+            Show().show_router( router, net.routers[router], True)
 
             iface = Prompt.ask(
                 "Select an iface",
@@ -190,7 +190,7 @@ class Configure:
                     return
                 net.set_bridge_connect(bridge, router, iface, apply=True)
             else:
-                Show().show_router(net, router, net.routers[router], True)
+                Show().show_router( router, net.routers[router], True)
                 bridge = Prompt.ask(
                     "Select a bridge",
                     choices=["q", "quit"] + list(net.bridges.keys()),
