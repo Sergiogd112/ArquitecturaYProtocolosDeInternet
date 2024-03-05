@@ -13,13 +13,13 @@ from rich.panel import Panel
 from .route import RouteTable
 from Net.ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
 from binmanipulation import getFirstSetBitPos
-from .loaders import (
-    read_scenario,
-    lxc_to_router,
-    read_vtyshrc,
-    lxc_to_router_old,
-    lxc_to_router_new,
-)
+# from .loaders import (
+#     read_scenario,
+#     lxc_to_router,
+#     read_vtyshrc,
+#     lxc_to_router_old,
+#     lxc_to_router_new,
+# )
 
 
 class Net:
