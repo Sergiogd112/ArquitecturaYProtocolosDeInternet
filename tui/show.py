@@ -32,6 +32,8 @@ class Show:
                     "vtyshrc",
                     "vrt",
                     "vtyshrt",
+                    "o",
+                    "ospf",
                     "q",
                     "quit",
                 ],
@@ -48,6 +50,8 @@ class Show:
                 self.show_vtyshrc(net)
             elif opt == "vrt":
                 self.show_vtyshrt(net)
+            elif opt == "o" or opt == "ospf":
+                self.show_ospf(net)
             elif opt == "q":
                 return
 
@@ -209,12 +213,21 @@ class Show:
                 self.show_ospf_summary(net)
             elif opt == "q" or opt == "quit":
                 return
+
     def show_ospf_router(self, net):
         self.console.print("Show ospf router")
         columns = Columns(expand=True)
         for router in sorted(list(net.routers.keys())):
             consoleout = run(
-                ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip ospf database router"],
+                [
+                    "lxc-attach",
+                    "-n",
+                    router,
+                    "--",
+                    "vtysh",
+                    "-c",
+                    "show ip ospf database router",
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -226,12 +239,21 @@ class Show:
                 )
             )
         self.console.print(columns)
+
     def show_ospf_network(self, net):
         self.console.print("Show ospf network")
         columns = Columns(expand=True)
         for router in sorted(list(net.routers.keys())):
             consoleout = run(
-                ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip ospf database network"],
+                [
+                    "lxc-attach",
+                    "-n",
+                    router,
+                    "--",
+                    "vtysh",
+                    "-c",
+                    "show ip ospf database network",
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -243,12 +265,21 @@ class Show:
                 )
             )
         self.console.print(columns)
+
     def show_ospf_summary(self, net):
         self.console.print("Show ospf summary")
         columns = Columns(expand=True)
         for router in sorted(list(net.routers.keys())):
             consoleout = run(
-                ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip ospf database summary"],
+                [
+                    "lxc-attach",
+                    "-n",
+                    router,
+                    "--",
+                    "vtysh",
+                    "-c",
+                    "show ip ospf database summary",
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
