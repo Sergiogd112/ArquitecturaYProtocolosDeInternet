@@ -239,8 +239,8 @@ class Show:
                 for ls in content.split("\n\n\n"):
                     AR = ls.split("Advertising Router: ")[1].split("\n")[0]
                     rname = net.get_router_with_ip(AR)
-                    df = df.append(
-                        {"Advertising Router": AR, "Router name": rname},
+                    df = pd.concat(
+                        [df, pd.DataFrame([[AR, rname]], columns=df.columns)],
                         ignore_index=True,
                     )
                     columns.add_renderable(
