@@ -246,6 +246,12 @@ class Net:
             )
         return res
 
+    def get_router_with_ip(self, ip):
+        for router, value in self.routers.items():
+            for _, con in value["iface"].items():
+                if len(con) > 1 and ip in con["ip"]:
+                    return router
+        return None
     # Helpers
     def get_usable_ranges(self, mainnetip, mask=None):
         if mask is None:

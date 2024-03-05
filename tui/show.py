@@ -214,6 +214,54 @@ class Show:
             elif opt == "q" or opt == "quit":
                 return
 
+    def show_ospf_routers(self, net, router, area):
+        consoleout = run(
+            [
+                "lxc-attach",
+                "-n",
+                router,
+                "--",
+                "vtysh",
+                "-c",
+                "show ip ospf database router",
+            ],
+            capture_output=True,
+            text=True,
+            # check=True,
+        ).stdout
+        arealsarr = consoleout.split("Router Link States (Area ")
+        columns = Columns(expand=True)
+        df = pd.DataFrame(columns=["Advertising Router", "Router name"])
+        for areals in arealsarr[1:]:
+            areaid = areals.split(")")[0]
+            if areaid == area:
+                content = areals.split(")")[1].strip()
+                for ls in content.split("\n\n\n"):
+                    AR = ls.split("Advertising Router: ")[1].split("\n")[0]
+                    rname = net.get_router_with_ip(AR)
+                    df = df.append(
+                        {"Advertising Router": AR, "Router name": rname},
+                        ignore_index=True,
+                    )
+                    columns.add_renderable(
+                        Panel(
+                            content,
+                            title="[bold magenta]"
+                            + AR
+                            + "|"
+                            + rname
+                            + "[/bold magenta]",
+                        )
+                    )
+                break
+        self.console.print(columns)
+        table = Table(show_header=True, header_style="bold magenta")
+        for col in df.columns:
+            table.add_column(col)
+        for idx, row in df.iterrows():
+            table.add_row(*[val for val in row.values])
+        self.console.print(table)
+
     def show_ospf_routers(self, net):
         self.console.print("Show ospf router")
         columns = Columns(expand=True)
