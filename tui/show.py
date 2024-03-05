@@ -260,7 +260,7 @@ class Show:
         for idx, row in df.iterrows():
             table.add_row(*[val for val in row.values])
         return Panel(
-            Group(table, columns, fit=True),
+            Group(columns,table, fit=True),
             title="[bold magenta]" + area + "[/bold magenta]",
         )
 
