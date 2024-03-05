@@ -217,6 +217,7 @@ class Show:
                 ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip ospf database router"],
                 capture_output=True,
                 text=True,
+                check=True,
             ).stdout
             columns.add_renderable(
                 Panel(
@@ -233,6 +234,7 @@ class Show:
                 ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip ospf database network"],
                 capture_output=True,
                 text=True,
+                check=True,
             ).stdout
             columns.add_renderable(
                 Panel(
@@ -249,6 +251,7 @@ class Show:
                 ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip ospf database summary"],
                 capture_output=True,
                 text=True,
+                check=True,
             ).stdout
             columns.add_renderable(
                 Panel(
