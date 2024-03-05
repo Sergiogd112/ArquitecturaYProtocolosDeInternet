@@ -300,6 +300,7 @@ class Show:
             if areaid == area:
                 content = ")\n".join(areals.split(")\n")[1:]).strip()
                 for ls in content.split("\n\n\n"):
+                    print(ls)
                     linkid = ls.split("Link ID: ")[1].strip().split(" ")[0]
                     mask = ls.split("Network Mask: ")[1].strip().split("\n")[0]
                     netip = get_net_ip(linkid + mask)
