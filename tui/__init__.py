@@ -1,4 +1,6 @@
 from subprocess import run
+import os
+
 from rich.console import Console, Group
 from rich.syntax import Syntax
 from rich.table import Table
@@ -6,16 +8,13 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.text import Text
 from rich.layout import Layout
-
 # from rich.live import Live
 from rich.pretty import Pretty
-
 from rich.columns import Columns
+
 import pandas as pd
-import os
 
-from net import Net
-
+from Net import Net, loaders
 from .show import Show
 from .configure import Configure
 
@@ -72,12 +71,12 @@ class TUI:
                 )
             )
             if "A" in pract:
-                self.scenario_state(scneario,pract)
+                self.scenario_state(scneario, pract)
             else:
-                self.scenario_state(scneario,pract="")
+                self.scenario_state(scneario, pract="")
 
-    def scenario_state(self, scenario,pract):
-        self.net = Net.read_scenario(scenario,pract)
+    def scenario_state(self, scenario, pract):
+        self.net = loaders.read_scenario(scenario, pract)
         self.configure = Configure(scenario)
         self.show.show_routers(self.net)
         while True:
@@ -150,7 +149,7 @@ class TUI:
             os.system(starts[0])
         self.console.print("Select a start script")
         if self.net is None:
-            self.net = Net.read_scenario(scenario)
+            self.net = loaders.read_scenario(scenario)
         while True:
             table = Table(
                 title="Start scripts",
@@ -172,7 +171,9 @@ class TUI:
             idx = int(idx)
             self.console.print("Selected: " + starts[idx])
             os.system(starts[idx])
-            self.net.read_scenario_subconfigs(scenario, starts[idx].split("-")[-1])
+            loaders.read_scenario_subconfigs(
+                self.net, scenario, starts[idx].split("-")[-1]
+            )
             self.show.show_routers(self.net)
             self.show.show_bridges(self.net)
             self.show.show_routes(self.net)
@@ -229,8 +230,8 @@ class TUI:
         for command in commands:
             os.system(command)
         self.net.generate_routes()
-        opt=Prompt.ask("Generate non direct routes?",choices=["y","n"],default="n")
-        if opt=="y":
+        opt = Prompt.ask("Generate non direct routes?", choices=["y", "n"], default="n")
+        if opt == "y":
             self.net.generate_non_direct_routes()
         self.net.check_routes()
         self.net.apply_configuration()
@@ -283,12 +284,11 @@ class TUI:
         self.console.print("TODO: RIP configuration")
 
     def run_ospf(self, scenario):
-        
+
         self.console.print("TODO: OSPF configuration")
 
     def run_bgp(self, scenario):
         self.console.print("TODO: BGP configuration")
-        
 
     def check_scenario(self):
         working, total = self.net.check_all_connections(True)

@@ -1,10 +1,13 @@
 from pytest import fixture
 from pprint import pprint
 import pandas as pd
-from rich.console import Console
-from ip import ip_to_int
-from net import Net
-from mytty import get_tty_width
+from rich.console import Console, Group
+from rich.panel import Panel
+from Net.ip import ip_to_int
+from Net.ip import ip_to_int
+from Net import Net,loaders
+
+# from mytty import get_tty_width
 
 
 @fixture
@@ -486,7 +489,7 @@ lxc.net.2.flags = up
 lxc.net.2.name = eth2
 lxc.net.2.veth.pair = R01-eth2
     """
-    router, conf = Net.lxc_to_router(content)
+    router, conf = loaders.lxc_to_router(content)
     assert router == "R01"
     assert conf == {
         "iface": {
@@ -535,7 +538,7 @@ lxc.net.2.name = eth2
 lxc.net.2.ipv4.address = 10.0.0.113/29
 lxc.net.2.veth.pair = R03-eth2
     """
-    router, conf = Net.lxc_to_router(content)
+    router, conf = loaders.lxc_to_router(content)
     assert router == "R03"
     assert conf == {
         "iface": {
@@ -547,14 +550,10 @@ lxc.net.2.veth.pair = R03-eth2
 
 
 def test_read_scenario(net):
-    net2 = Net.read_scenario("P01-E01")
-    print("=" * get_tty_width())
-    pprint(net.routers)
-    pprint(net2.routers)
-    print("=" * get_tty_width())
-    pprint(net.bridges)
-    pprint(net2.bridges)
-    print("=" * get_tty_width())
+    net2 = loaders.read_scenario("P01-E01")
+    console = Console()
+    console.print(Group(Panel(net.routers), Panel(net2.routers)))
+    console.print(Group(Panel(net.bridges), Panel(net2.bridges)))
     for router, dev in net.routers.items():
         pprint(router)
         pprint(dev)
@@ -572,9 +571,9 @@ def test_read_scenario(net):
 
 
 def test_get_brg_with_netip(net):
-    brg=net.get_brg_with_netip("10.0.0.96")
+    brg = net.get_brg_with_netip("10.0.0.96")
     assert brg == "br08"
-    brg=net.get_brg_with_netip("10.0.0.64")
+    brg = net.get_brg_with_netip("10.0.0.64")
     assert brg == "br07"
-    brg=net.get_brg_with_netip("10.0.1.128")
+    brg = net.get_brg_with_netip("10.0.1.128")
     assert brg == None

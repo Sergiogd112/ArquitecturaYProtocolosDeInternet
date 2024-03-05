@@ -6,7 +6,7 @@ from rich.prompt import Prompt
 from rich.layout import Layout
 from rich.columns import Columns
 import pandas as pd
-from net import Net
+from Net import Net
 
 
 class Show:

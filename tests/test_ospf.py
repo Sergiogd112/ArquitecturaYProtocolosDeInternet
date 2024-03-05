@@ -1,15 +1,14 @@
-from ip import ip_to_int
-from net import Net
 from pytest import fixture
 from pprint import pprint
 import pandas as pd
-from mytty import get_tty_width
 from rich.console import Console
+from Net.ip import ip_to_int
+from Net import Net,loaders
 
 
 @fixture
 def netospf():
-    return Net.read_scenario("P03-E01")
+    return loaders.read_scenario("P03-E01")
 
 
 def test_routers_org(netospf):

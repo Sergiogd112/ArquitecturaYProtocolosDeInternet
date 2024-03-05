@@ -1,4 +1,4 @@
-from ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast
+from Net.ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast
 
 def test_ip_to_int():
     assert ip_to_int("10.0.0.0") == 167772160

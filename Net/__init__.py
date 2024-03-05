@@ -10,9 +10,16 @@ from rich.prompt import Prompt
 from rich.progress import track, Progress
 from rich.panel import Panel
 
-from route import RouteTable
-from ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
+from .route import RouteTable
+from Net.ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
 from binmanipulation import getFirstSetBitPos
+from .loaders import (
+    read_scenario,
+    lxc_to_router,
+    read_vtyshrc,
+    lxc_to_router_old,
+    lxc_to_router_new,
+)
 
 
 class Net:
@@ -120,281 +127,18 @@ class Net:
         self.bridges = bridges
         return bridges
 
-    # Load data
-    @staticmethod
-    def read_scenario(scenario: str, pract="") -> "Net":
-        routers = {}
-        if pract == "":
-            path = "/home/api/practiques/" + scenario.split("-")[0] + "/" + scenario
-        else:
-            path = "/home/api/practiques/" + pract + "/" + scenario
-        # if this path is not a directory set it to:
-
-        if not os.path.isdir(path):
-            path = os.path.join("practiques", scenario.split("-")[0], scenario)
-        el = ""
-        if "A" not in pract:
-            # Console().print(path)
-            for el in os.listdir(path):
-                if (
-                    "config" in el
-                    and "bak" not in el
-                    and os.path.isdir(os.path.join(path, el))
-                ):
-                    break
-            else:
-
-                raise FileNotFoundError("No config directory found")
-            for config in os.listdir(os.path.join(path, el)):
-                Console().print(Panel(config))
-                if "config" in config and "bak" not in config:
-                    with open(
-                        os.path.join(path, el, config), "r", encoding="utf-8"
-                    ) as file:
-                        contents = file.read()
-                    name, conf = Net.lxc_to_router(contents)
-                    routers[name] = conf
-        else:
-            for el in os.listdir(os.path.join(path)):
-                if os.path.isfile(os.path.join(path, el, "config")):
-                    with open(
-                        os.path.join(path, el, "config"), "r", encoding="utf-8"
-                    ) as file:
-                        contents = file.read()
-                    name, conf = Net.lxc_to_router(contents)
-                    routers[name] = conf
-        return Net(routers)
-
-    @staticmethod
-    def lxc_to_router_new(text: str) -> Tuple[str, dict]:
-        # Your code here
-        text = text.strip()
-        # get the uts.name
-        utsname = text.split("lxc.uts.name = ")[1].split("\n")[0]
-        # get the network configuration
-        netconf = text.split("# Network configuration")[1].split("\n\n")
-        netcondict = {"iface": {}}
-        # console = Console()
-        # console.print("\n\n".join(netconf))
-        for block in netconf:
-            if len(block) == 0:
-                continue
-            # get the name of the interface
-
-            name = block.split(".name = ")[1].split("\n")[0].strip()
-            try:
-                brg = block.split(".link = ")[1].split("\n")[0].strip()
-            except IndexError:
-                brg = None
-            if "address" in block:
-                # get the ip address
-                address = block.split("address = ")[1].split("\n")[0].strip()
-                netcondict["iface"][name] = {
-                    "brg": brg,
-                    "ip": address,
-                }
-            else:
-                netcondict["iface"][name] = {"brg": brg}
-        return utsname, netcondict
-
-    @staticmethod
-    def lxc_to_router_old(text: str) -> Tuple[str, dict]:
-        # Your code here
-        text = text.strip()
-        # get the uts.name
-        utsname = text.split("lxc.utsname = ")[1].split("\n")[0]
-        # get the network configuration
-        netconf = text.split("# Network configuration")[1].split("\n\n")
-        netcondict = {"iface": {}}
-        # console = Console()
-        # console.print("\n\n".join(netconf))
-        for block in netconf:
-            if len(block) == 0:
-                continue
-            # get the name of the interface
-
-            name = block.split(".name = ")[1].split("\n")[0].strip()
-            try:
-                brg = block.split(".link = ")[1].split("\n")[0].strip()
-            except IndexError:
-                brg = None
-            if "address" in block:
-                # get the ip address
-                address = block.split("address = ")[1].split("\n")[0].strip()
-                netcondict["iface"][name] = {
-                    "brg": brg,
-                    "ip": address,
-                }
-            else:
-                netcondict["iface"][name] = {"brg": brg}
-        return utsname, netcondict
-
-    @staticmethod
-    def lxc_to_router(text: str) -> Tuple[str, dict]:
-        if "uts.name" in text:
-            return Net.lxc_to_router_new(text)
-        else:
-            return Net.lxc_to_router_old(text)
-
-    def read_vtyshrc(self, contents: str) -> Tuple[int, dict]:
-        """example contents:
-                !
-        interface eth0
-          ip address 10.0.1.193/27
-        !
-        interface eth1
-          ip address 10.0.1.97/27
-        !
-        !
-        !
-        ip forwarding
-        ipv6 forwarding
-        returns:
-                {
-                    "eth0": {"brg":None,"ip":"10.0.1.193/27"},
-                    "eth1": {"brg":None,"ip":"10.0.1.97/27"},
-                }
-        """
-        blocks = contents.split("!\n")[1:]
-        res = {"iface": {}}
-        changes = 0
-        for block in blocks:
-            block = block.strip()
-            if "" == block:
-                continue
-            # Console().print(block)
-
-            if "interface" in block:
-                name = block.split("interface ")[1].split("\n")[0]
-                # Console().print(name)
-                # if name not in res["iface"]:
-                #     res["iface"][name] = {}
-                # if "ip address" in block:
-                #     address = block.split("ip address ")[1].split("\n")[0]
-                #     Console().print(address)
-                #     res["iface"][name] = {"brg": None, "ip": address}
-                #     changes += 1
-                # elif "ip ospf" in block:
-                #     res["iface"][name]["ospf"] = block.split("ip ospf ")[1].split("\n")[
-                #         0
-                #     ]
-                #     changes += 1
-                # else:
-                #     res["iface"][name] = {"brg": None}
-                #     changes += 1
-                if name not in res["iface"]:
-                    res["iface"][name] = {"brg": None}
-                    changes += 1
-                for line in block.split("\n")[1:]:
-                    # Console().print(line)
-                    if "ip address" in line:
-                        address = line.split("ip address ")[1].split("\n")[0]
-                        # Console().print(address)
-                        res["iface"][name] = {"brg": None, "ip": address}
-                        changes += 1
-                    elif "ip ospf" in line:
-                        res["iface"][name]["ospf"] = line.split("ip ospf ")[1].split(
-                            "\n"
-                        )[0]
-                        changes += 1
-            if "router ospf" in block:
-                if "ospf" not in res:
-                    res["ospf"] = []
-                for line in block.split("\n")[1:]:
-                    # Console().print(line)
-                    if "network" not in line:
-                        continue
-                    area = line.split("area ")[1].split("\n")[0]
-                    net = line.split("network ")[1].split(" ")[0]
-                    res["ospf"] += [{"area": area, "network": net}]
-                    changes += 1
-        # Console().print("read_vtyshrc", changes)
-        # Console().print(res)
-        return changes, res
-
-    def load_vtyshrt(
-        self,
-    ):
-        for router, _ in self.routers.items():
-            console_out = os.popen(
-                f"lxc-attach -n {router} -- vtysh -c 'show ip route'"
-            ).read()
-            if router not in self.routes:
-                self.routes[router] = RouteTable()
-            self.routes[router].loads_vtysh_routes(console_out)
-
-    def load_running_config(self):
-        for router, conf in self.routers.items():
-            # get the vtysh running config
-            consoleout = (
-                os.popen(f"lxc-attach -n {router} -- vtysh -c 'show running'")
-                .read()
-                .split("end")[0]
-            )
-            ch, res = self.read_vtyshrc(consoleout)
-            if ch < 1:
-                continue
-            if "ospf" in res:
-                self.routers[router]["ospf"] = res["ospf"]
-
-            for iface, con in res["iface"].items():
-                if len(con) < 1:
-                    continue
-                if iface not in self.routers[router]["iface"].keys():
-                    self.routers[router]["iface"][iface] = con
-                else:
-                    self.routers[router]["iface"][iface] = {
-                        "brg": self.routers[router]["iface"][iface]["brg"],
-                        "ip": (
-                            con["ip"]
-                            if "ip" in con and con["ip"] is not None
-                            else (
-                                self.routers[router]["iface"][iface]["ip"]
-                                if "ip" in self.routers[router]["iface"][iface]
-                                else None
-                            )
-                        ),
-                    }
-                if "ospf" in con:
-                    self.routers[router]["iface"][iface]["ospf"] = con["ospf"]
-                    netip = get_net_ip(con["ip"])
-                    for i, row in enumerate(self.routers[router]["ospf"]):
-                        if row["network"] == netip:
-                            self.routers[router]["ospf"][i]["p2p"] = True
-
-        # Console().print(self.routers)
-        self.bridges = self.generate_bridges(self.routers)
-
-    def load_brctl_show(self):
-        consoleout = os.popen("brctl show").read()
-        pbrg = None
-        for line in consoleout.split("\n")[1:]:
-            brg = line.split("\t")[0]
-            if brg == "":
-                brg = pbrg
-            if brg not in self.bridges.keys():
-                self.bridges[brg] = {"routers": [], "devcount": 0}
-            # Console().print(line)
-            try:
-                router, iface = line.split("\t")[-1].split("-")
-            except ValueError:
-                continue
-            if brg not in self.bridges.keys():
-                self.bridges[brg] = {"routers": [router], "devcount": 3}
-            else:
-                self.bridges[brg]["routers"].append(router)
-                self.bridges[brg]["routers"] = sorted(
-                    list(set(self.bridges[brg]["routers"]))
-                )
-                self.bridges[brg]["devcount"] += 1
-            if router not in self.routers.keys():
-                self.routers[router] = {"iface": {iface: {"brg": brg}}}
-            else:
-                self.routers[router]["iface"][iface]["brg"] = brg
-            pbrg = brg
-
     # Getters
     def get_netips_from_router(self, router):
+        """
+        Retrieves a list of network IPs from the specified router.
+
+        Args:
+            router (str): The name of the router.
+
+        Returns:
+            list: A list of network IPs.
+
+        """
         netips = []
         for _, conf in self.routers[router]["iface"].items():
             if len(conf) > 1 and "ip" in conf.keys() and conf["ip"] is not None:
@@ -402,75 +146,35 @@ class Net:
         return netips
 
     def get_brg_with_netip(self, netip):
-        # Console().print(netip)
-        for brg, conf in self.bridges.items():
-            # Console().print(conf)
-            if "netip" not in conf.keys():
-                continue
-            if conf["netip"] == netip:
-                return brg
-        return None
+            """
+            Returns the bridge associated with the given netip.
 
-    def read_scenario_subconfigs(self, escenario: str, sub: str):
-        path = "/home/api/practiques/" + escenario.split("-")[0] + "/" + escenario
-        # if this path is not a directory set it to:
-        if not os.path.isdir(path):
-            path = os.path.join("practiques", escenario.split("-")[0], escenario)
-        # Console().print(path)
-        for el in os.listdir(path):
-            if (
-                "config" in el
-                and "bak" not in el
-                and os.path.isdir(os.path.join(path, el))
-            ):
-                break
-        else:
-            raise FileNotFoundError("No config directory found")
-        for file in os.listdir(os.path.join(path, el)):
-            if sub in file:
-                router = file.split("_")[1]
-                # Console().print(router)
-                with open(os.path.join(path, el, file), "r", encoding="utf-8") as file:
-                    contents = file.read()
-                ch, res = self.read_vtyshrc(contents)
-                # Console().print(router, ch)
-                # Console().print(res)
-                if ch < 1:
+            Parameters:
+            - netip (str): The netip to search for.
+
+            Returns:
+            - str or None: The bridge name if found, None otherwise.
+            """
+            # Console().print(netip)
+            for brg, conf in self.bridges.items():
+                # Console().print(conf)
+                if "netip" not in conf.keys():
                     continue
+                if conf["netip"] == netip:
+                    return brg
+            return None
 
-                for port, conf in res["iface"].items():
-                    # Console().print(port)
-                    # Console().print(conf)
-
-                    if len(conf) < 1:
-                        continue
-
-                    if router not in self.routers.keys():
-                        self.routers[router] = {"iface": {port: {"brg": conf["brg"]}}}
-                    if port not in self.routers[router]["iface"].keys():
-                        self.routers[router]["iface"][port] = {"brg": conf["brg"]}
-                    if len(conf) <= 1:
-                        self.routers[router]["iface"][port]["brg"] = self.routers[
-                            router
-                        ]["iface"][port]["brg"]
-                    else:
-                        self.routers[router]["iface"][port] = {
-                            "brg": self.routers[router]["iface"][port]["brg"],
-                            "ip": (
-                                conf["ip"]
-                                if "ip" in conf and conf["ip"] is not None
-                                else (
-                                    self.routers[router]["iface"][port]["ip"]
-                                    if "ip" in self.routers[router]["iface"][port]
-                                    else None
-                                )
-                            ),
-                        }
-                if "ospf" in res:
-                    self.routers[router]["ospf"] = res["ospf"]
-        self.bridges = self.generate_bridges(self.routers)
-
+    
     def generate_routes(self, routers=None):
+        """
+        Generates routes for the network based on the provided routers.
+
+        Args:
+            routers (dict): A dictionary containing the routers and their corresponding interfaces.
+
+        Returns:
+            dict: A dictionary representing the generated routes.
+        """
         if routers is None:
             routers = self.routers
         for router, value in routers.items():
@@ -496,6 +200,16 @@ class Net:
         return self.routes
 
     def get_router_port_from_brdg(self, router, brg):
+        """
+        Get the port of a router connected to a specific bridge.
+
+        Args:
+            router (str): The name of the router.
+            brg (str): The name of the bridge.
+
+        Returns:
+            str or None: The port of the router connected to the bridge, or None if not found.
+        """
         for port, con in self.routers[router]["iface"].items():
             if con["brg"] == brg:
                 return port

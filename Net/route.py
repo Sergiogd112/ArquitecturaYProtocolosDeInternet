@@ -3,7 +3,7 @@ import os
 from pprint import pprint
 import pandas as pd
 from colorama import Fore, Back, Style
-from ip import get_net_ip, get_broadcast, ip_to_int, int_to_ip
+from Net.ip import get_net_ip, get_broadcast, ip_to_int, int_to_ip
 from binmanipulation import *
 
 BOLD = "\033[1m"
