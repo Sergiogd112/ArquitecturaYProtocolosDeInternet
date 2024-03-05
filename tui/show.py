@@ -294,19 +294,25 @@ class Show:
         ).stdout
         arealsarr = consoleout.split("Net Link States (Area ")
         columns = Columns(expand=True)
-        df = pd.DataFrame(columns=["Link ID", "Advertising Router"])
+        df = pd.DataFrame(columns=["Link ID", "Advertising Router", "Router name"])
         for areals in arealsarr[1:]:
             areaid = areals.split(")")[0]
             if areaid == area:
                 content = ")\n".join(areals.split(")\n")[1:]).strip()
-                for ls in content.split("\n\n\n"):
-                    linkid = ls.split("Link ID: ")[1].strip().split(" ")[0]
+                for ls in content.split("\n\n"):
+                    linkid = ls.split("Link State ID: ")[1].strip().split(" ")[0]
                     mask = ls.split("Network Mask: ")[1].strip().split("\n")[0]
                     netip = get_net_ip(linkid + mask)
                     brg = net.get_brg_with_netip(netip)
                     AR = ls.split("Advertising Router: ")[1].split("\n")[0]
+                    routername = net.get_router_with_ip(AR)
                     df = pd.concat(
-                        [df, pd.DataFrame([[linkid, AR]], columns=df.columns)],
+                        [
+                            df,
+                            pd.DataFrame(
+                                [[linkid, AR, routername]], columns=df.columns
+                            ),
+                        ],
                         ignore_index=True,
                     )
                     columns.add_renderable(
@@ -314,6 +320,7 @@ class Show:
                             ls,
                             title="[bold magenta]"
                             + netip
+                            + mask
                             + "|"
                             + brg
                             + "[/bold magenta]",
@@ -321,7 +328,7 @@ class Show:
                     )
                 break
         table = Table(show_header=True, header_style="bold magenta")
-        df = df.sort_values(by="Link ID")
+        df = df.sort_values(by="Router name")
         for col in df.columns:
             table.add_column(col)
         for _, row in df.iterrows():
