@@ -249,6 +249,8 @@ class Net:
     def get_router_with_ip(self, ip):
         for router, value in self.routers.items():
             for _, con in value["iface"].items():
+                if con is None:
+                    continue
                 if len(con) > 1 and ip in con["ip"]:
                     return router
         return None
