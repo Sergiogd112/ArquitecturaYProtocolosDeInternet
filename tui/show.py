@@ -235,7 +235,7 @@ class Show:
         for areals in arealsarr[1:]:
             areaid = areals.split(")")[0]
             if areaid == area:
-                content = areals.split(")")[1].strip()
+                content = ")\n".join(areals.split(")\n")[1:]).strip()
                 for ls in content.split("\n\n\n"):
                     AR = ls.split("Advertising Router: ")[1].split("\n")[0]
                     rname = net.get_router_with_ip(AR)
