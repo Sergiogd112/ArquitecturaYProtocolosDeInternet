@@ -214,7 +214,7 @@ class Show:
             elif opt == "q" or opt == "quit":
                 return
 
-    def show_ospf_routers(self, net, router, area):
+    def show_ospf_router(self, net, router, area):
         consoleout = run(
             [
                 "lxc-attach",
@@ -254,13 +254,15 @@ class Show:
                         )
                     )
                 break
-        self.console.print(columns)
         table = Table(show_header=True, header_style="bold magenta")
         for col in df.columns:
             table.add_column(col)
         for idx, row in df.iterrows():
             table.add_row(*[val for val in row.values])
-        self.console.print(table)
+        return Panel(
+            Group(table, columns, fit=True),
+            title="[bold magenta]" + area + "[/bold magenta]",
+        )
 
     def show_ospf_routers(self, net):
         self.console.print("Show ospf router")
@@ -268,26 +270,8 @@ class Show:
         areas = net.get_ospf_areas()
         for area in sorted(list(areas.keys())):
             router = areas[area][0]
-            consoleout = run(
-                [
-                    "lxc-attach",
-                    "-n",
-                    router,
-                    "--",
-                    "vtysh",
-                    "-c",
-                    "show ip ospf database router",
-                ],
-                capture_output=True,
-                text=True,
-                # check=True,
-            ).stdout
-            columns.add_renderable(
-                Panel(
-                    consoleout,
-                    title="[bold magenta]" + area + "[/bold magenta]",
-                )
-            )
+
+            columns.add_renderable(self.show_ospf_router(net, router, area))
         self.console.print(columns)
 
     def show_ospf_networks(self, net):
