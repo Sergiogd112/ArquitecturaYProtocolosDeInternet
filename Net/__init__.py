@@ -13,6 +13,7 @@ from rich.panel import Panel
 from .route import RouteTable
 from Net.ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
 from binmanipulation import getFirstSetBitPos
+
 # from .loaders import (
 #     read_scenario,
 #     lxc_to_router,
@@ -44,6 +45,7 @@ class Net:
         """
         self.bridges = bridges
         self.routers = routers
+
         if bridges is None:
             self.bridges = self.generate_bridges(routers)
         if routes is None:
@@ -146,25 +148,24 @@ class Net:
         return netips
 
     def get_brg_with_netip(self, netip):
-            """
-            Returns the bridge associated with the given netip.
+        """
+        Returns the bridge associated with the given netip.
 
-            Parameters:
-            - netip (str): The netip to search for.
+        Parameters:
+        - netip (str): The netip to search for.
 
-            Returns:
-            - str or None: The bridge name if found, None otherwise.
-            """
-            # Console().print(netip)
-            for brg, conf in self.bridges.items():
-                # Console().print(conf)
-                if "netip" not in conf.keys():
-                    continue
-                if conf["netip"] == netip:
-                    return brg
-            return None
+        Returns:
+        - str or None: The bridge name if found, None otherwise.
+        """
+        # Console().print(netip)
+        for brg, conf in self.bridges.items():
+            # Console().print(conf)
+            if "netip" not in conf.keys():
+                continue
+            if conf["netip"] == netip:
+                return brg
+        return None
 
-    
     def generate_routes(self, routers=None):
         """
         Generates routes for the network based on the provided routers.
@@ -214,6 +215,81 @@ class Net:
             if con["brg"] == brg:
                 return port
         return None
+
+    def get_ospf_areas(self):
+        """
+        Get the OSPF areas for the network.
+
+        Returns:
+        dict: A dictionary containing the OSPF areas.
+        """
+        areas = {}
+        for router, value in self.routers.items():
+            if "ospf" in value:
+                for ospf in value["ospf"]:
+                    if ospf["area"] not in areas:
+                        areas[ospf["area"]] = [router]
+                    else:
+                        areas[ospf["area"]] += [router]
+        return areas
+
+    def bridges_to_list(self):
+        res = []
+        for brg, conf in self.bridges.items():
+            res.append(
+                [
+                    brg,
+                    conf["devcount"],
+                    conf["routers"],
+                ]
+            )
+        return res
+
+    # Helpers
+    def get_usable_ranges(self, mainnetip, mask=None):
+        if mask is None:
+            mask = int(mainnetip.split("/")[1])
+            mainnetip = mainnetip.split("/")[0]
+        ranges = []
+        for _, conf in self.bridges.items():
+            if "netip" in conf.keys():
+                ranges = ranges + [
+                    (
+                        ip_to_int(conf["netip"]),
+                        ip_to_int(get_broadcast(conf["netip"], conf["mask"])),
+                        conf["mask"],
+                    )
+                ]
+        used_ranges = sorted(ranges, key=lambda x: x[0])
+        rstart = ip_to_int(get_net_ip(mainnetip, mask))
+
+        rend = ip_to_int(get_broadcast(mainnetip, mask))
+        # print(rstart, rend)
+        # print(used_ranges)
+        available = []
+        if rstart != used_ranges[0][0]:
+            available += [(rstart, used_ranges[0][0] - 1, None)]
+        if rend != used_ranges[0][1]:
+            available += [(used_ranges[0][1] + 1, rend, None)]
+
+        for i, ran in enumerate(used_ranges[:-1]):
+            if ran[1] + 1 != used_ranges[i + 1][0]:
+                available += [(ran[1] + 1, used_ranges[i][0] - 1, None)]
+        self.emptyranges = Net.fix_ranges(available)
+        self.emptyranges = sorted(self.emptyranges, key=lambda x: x[0])
+
+        return self.emptyranges
+
+    def check_ip_used(self, ip, brg):
+        for router in self.bridges[brg]["routers"]:
+            for _, con in self.routers[router]["iface"].items():
+                if len(con) == 1:
+                    continue
+                if con["brg"] != brg:
+                    continue
+                if ip in con["ip"]:
+                    return True
+        return False
 
     @staticmethod
     def fix_ranges(ranges: list) -> list:
@@ -275,64 +351,6 @@ class Net:
                     raise ValueError("Either you found a bug in the code or broke math")
 
         return res
-
-    def bridges_to_list(self):
-        res = []
-        for brg, conf in self.bridges.items():
-            res.append(
-                [
-                    brg,
-                    conf["devcount"],
-                    conf["routers"],
-                ]
-            )
-        return res
-
-    # Helpers
-    def get_usable_ranges(self, mainnetip, mask=None):
-        if mask is None:
-            mask = int(mainnetip.split("/")[1])
-            mainnetip = mainnetip.split("/")[0]
-        ranges = []
-        for _, conf in self.bridges.items():
-            if "netip" in conf.keys():
-                ranges = ranges + [
-                    (
-                        ip_to_int(conf["netip"]),
-                        ip_to_int(get_broadcast(conf["netip"], conf["mask"])),
-                        conf["mask"],
-                    )
-                ]
-        used_ranges = sorted(ranges, key=lambda x: x[0])
-        rstart = ip_to_int(get_net_ip(mainnetip, mask))
-
-        rend = ip_to_int(get_broadcast(mainnetip, mask))
-        # print(rstart, rend)
-        # print(used_ranges)
-        available = []
-        if rstart != used_ranges[0][0]:
-            available += [(rstart, used_ranges[0][0] - 1, None)]
-        if rend != used_ranges[0][1]:
-            available += [(used_ranges[0][1] + 1, rend, None)]
-
-        for i, ran in enumerate(used_ranges[:-1]):
-            if ran[1] + 1 != used_ranges[i + 1][0]:
-                available += [(ran[1] + 1, used_ranges[i][0] - 1, None)]
-        self.emptyranges = Net.fix_ranges(available)
-        self.emptyranges = sorted(self.emptyranges, key=lambda x: x[0])
-
-        return self.emptyranges
-
-    def check_ip_used(self, ip, brg):
-        for router in self.bridges[brg]["routers"]:
-            for _, con in self.routers[router]["iface"].items():
-                if len(con) == 1:
-                    continue
-                if con["brg"] != brg:
-                    continue
-                if ip in con["ip"]:
-                    return True
-        return False
 
     @staticmethod
     def print_ranges_with_ip(ranges: list):

@@ -108,11 +108,11 @@ class Configure:
     def configure_ospf(self, net, router):
         self.console.print("Configure ospf")
         while True:
-            Show().show_router(net, router, net.routers[router], True)
+            Show().show_router( router, net.routers[router], True)
             area = Prompt.ask(
                 "Select an area",
                 choices=["q", "quit", "c", "create"]
-                + [x["area"] for x in net.routers[router]["ospf"]],
+                + net.get_ospf_areas(),
             )
             if area in ["q", "quit"]:
                 return

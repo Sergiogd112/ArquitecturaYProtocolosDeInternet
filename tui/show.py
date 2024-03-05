@@ -217,7 +217,9 @@ class Show:
     def show_ospf_router(self, net):
         self.console.print("Show ospf router")
         columns = Columns(expand=True)
-        for router in sorted(list(net.routers.keys())):
+        areas=net.get_ospf_areas()
+        for area in sorted(list(areas.keys())):
+            router=area[0]
             consoleout = run(
                 [
                     "lxc-attach",
@@ -235,7 +237,7 @@ class Show:
             columns.add_renderable(
                 Panel(
                     consoleout,
-                    title="[bold magenta]" + router + "[/bold magenta]",
+                    title="[bold magenta]" + area + "[/bold magenta]",
                 )
             )
         self.console.print(columns)
@@ -243,7 +245,9 @@ class Show:
     def show_ospf_network(self, net):
         self.console.print("Show ospf network")
         columns = Columns(expand=True)
-        for router in sorted(list(net.routers.keys())):
+        areas=net.get_ospf_areas()
+        for area in sorted(list(areas.keys())):
+            router=area[0]
             consoleout = run(
                 [
                     "lxc-attach",
@@ -261,15 +265,16 @@ class Show:
             columns.add_renderable(
                 Panel(
                     consoleout,
-                    title="[bold magenta]" + router + "[/bold magenta]",
+                    title="[bold magenta]" + area + "[/bold magenta]",
                 )
             )
         self.console.print(columns)
-
     def show_ospf_summary(self, net):
         self.console.print("Show ospf summary")
         columns = Columns(expand=True)
-        for router in sorted(list(net.routers.keys())):
+        areas=net.get_ospf_areas()
+        for area in sorted(list(areas.keys())):
+            router=area[0]
             consoleout = run(
                 [
                     "lxc-attach",
@@ -287,7 +292,7 @@ class Show:
             columns.add_renderable(
                 Panel(
                     consoleout,
-                    title="[bold magenta]" + router + "[/bold magenta]",
+                    title="[bold magenta]" + area + "[/bold magenta]",
                 )
             )
         self.console.print(columns)
