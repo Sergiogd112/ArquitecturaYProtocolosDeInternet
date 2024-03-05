@@ -313,7 +313,7 @@ def load_running_config(net):
             .read()
             .split("end")[0]
         )
-        ch, res = net.read_vtyshrc(consoleout)
+        ch, res = read_vtyshrc(net,consoleout)
         if ch < 1:
             continue
         if "ospf" in res:
@@ -415,7 +415,7 @@ def read_scenario_subconfigs(net, escenario: str, sub: str):
             # Console().print(router)
             with open(os.path.join(path, el, file), "r", encoding="utf-8") as file:
                 contents = file.read()
-            ch, res = net.read_vtyshrc(contents)
+            ch, res = read_vtyshrc(net,contents)
             # Console().print(router, ch)
             # Console().print(res)
             if ch < 1:

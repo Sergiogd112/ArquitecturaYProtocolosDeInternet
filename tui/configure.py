@@ -1,6 +1,7 @@
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.layout import Layout
+from Net import loaders
 from .show import Show
 
 
@@ -254,11 +255,11 @@ class Configure:
                 net.load_brctl_show()
                 Show().show_bridges(net)
             elif src == "a" or src == "all":
-                net.load_running_config()
+                loaders.load_running_config(net)
                 Show().show_routers(net)
-                net.load_vtyshrt()
+                loaders.load_vtyshrt(net)
                 Show().show_routes(net)
-                net.load_brctl_show()
+                loaders.load_brctl_show(net)
                 Show().show_bridges(net)
 
             elif src in ["q", "quit"]:
