@@ -218,7 +218,7 @@ def read_vtyshrc(net, contents: str) -> Tuple[int, dict]:
         contents: The contents of the vtyshrc file.
 
     Returns:
-        A tuple containing the number of changes made and a dictionary 
+        A tuple containing the number of changes made and a dictionary
         representing the configuration.
 
     Example:
@@ -313,7 +313,7 @@ def load_running_config(net):
             .read()
             .split("end")[0]
         )
-        ch, res = read_vtyshrc(net,consoleout)
+        ch, res = read_vtyshrc(net, consoleout)
         if ch < 1:
             continue
         if "ospf" in res:
@@ -415,7 +415,7 @@ def read_scenario_subconfigs(net, escenario: str, sub: str):
             # Console().print(router)
             with open(os.path.join(path, el, file), "r", encoding="utf-8") as file:
                 contents = file.read()
-            ch, res = read_vtyshrc(net,contents)
+            ch, res = read_vtyshrc(net, contents)
             # Console().print(router, ch)
             # Console().print(res)
             if ch < 1:

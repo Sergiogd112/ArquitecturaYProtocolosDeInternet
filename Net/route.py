@@ -1,15 +1,15 @@
 from functools import reduce
 import os
-from pprint import pprint
 import pandas as pd
 from colorama import Fore, Back, Style
-from Net.ip import get_net_ip, get_broadcast, ip_to_int, int_to_ip
-from binmanipulation import *
 
-BOLD = "\033[1m"
 from rich.console import Console
 from rich.syntax import Syntax
 from rich.table import Table
+from binmanipulation import *
+from .ip import get_net_ip, get_broadcast, ip_to_int, int_to_ip
+
+BOLD = "\033[1m"
 
 
 class RouteTable:
@@ -180,7 +180,7 @@ class RouteTable:
             "Mask": mask,
             "Selected": True if ">" in Code else False,
             "MyCost": int(cost) if cost.isdigit() else 0,
-            "Configured": True if "C" in Code else False,
+            "Configured": True,
         }
 
     def loads_vtysh_routes(self, data):
@@ -221,26 +221,28 @@ class RouteTable:
 
     def format_table(self):
         table = Table(title="Routes")
-        table.add_column("Type", justify="center", style="cyan", no_wrap=True)
-        table.add_column("Destination", justify="center", style="cyan", no_wrap=True)
+        table.add_column("T", justify="center", style="cyan", no_wrap=True)
+        table.add_column("Dest", justify="center", style="cyan", no_wrap=True)
         table.add_column("Mask", justify="center", style="cyan", no_wrap=True)
         table.add_column("Cost", justify="center", style="cyan", no_wrap=True)
         table.add_column("NextHop", justify="center", style="cyan", no_wrap=True)
-        table.add_column("Interface", justify="center", style="cyan", no_wrap=True)
-        table.add_column("Selected", justify="center", style="cyan", no_wrap=True)
-        table.add_column("MyCost", justify="center", style="cyan", no_wrap=True)
-        table.add_column("Configured", justify="center", style="cyan", no_wrap=True)
-        for idx, row in self.table.iterrows():
+        table.add_column("Iface", justify="center", style="cyan", no_wrap=True)
+        # table.add_column("Sel", justify="center", style="cyan", no_wrap=True)
+        # table.add_column("MyCost", justify="center", style="cyan", no_wrap=True)
+        # table.add_column("Configured", justify="center", style="cyan", no_wrap=True)
+        for _, row in self.table.iterrows():
             table.add_row(
                 row["Type"],
                 row["Destination"],
                 str(row["Mask"]),
                 row["Cost"],
-                row["NextHop"],
+                row["NextHop"].replace("direct connect", "direct"),
                 row["Interface"],
-                str(row["Selected"]),
-                str(row["MyCost"]),
-                str(row["Configured"]),
+                # str(row["Selected"]),
+                # str(row["MyCost"]),
+                # str(row["Configured"]),
+                # green if selected else white
+                style="green" if row["Selected"] else "white",
             )
         return table
 

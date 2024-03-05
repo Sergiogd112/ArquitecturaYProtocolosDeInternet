@@ -149,10 +149,11 @@ class Show:
 
     def show_routes(self, net):
         self.console.print("Show routes")
-        columns = Columns(expand=True)
-        for router, routes in net.routes.items():
+        columns = Columns(expand=True, align="center")
+        for router in sorted(net.routes.keys()):
+            routes = net.routes[router]
             self.console.print(router)
-            columns.add_renderable(Panel(routes.format_table(), title=router))
+            columns.add_renderable(Panel(routes.format_table(), title=router,style="bold "+ ("magenta" if "R" in router else "blue")))
         self.console.print(columns)
 
     def show_vtyshrc(self, net):
