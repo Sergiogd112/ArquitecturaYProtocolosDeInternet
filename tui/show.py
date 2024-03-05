@@ -52,7 +52,7 @@ class Show:
                 return
 
     def show_router(
-        self, net: "Net", router: str, conf: dict, printout: bool = False
+        self,  router: str, conf: dict, printout: bool = False
     ) -> Panel:
         tables = []
         for sect, block in conf.items():
@@ -89,7 +89,7 @@ class Show:
         columns = Columns(expand=True)
         for router in sorted(list(net.routers.keys())):
             conf = net.routers[router]
-            panel = self.show_router(net, router, conf, printout=False)
+            panel = self.show_router(router, conf, printout=False)
             columns.add_renderable(panel)
         self.console.print(columns)
 
