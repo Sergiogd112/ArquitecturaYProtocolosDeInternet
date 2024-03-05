@@ -206,20 +206,20 @@ class Show:
                 choices=["r", "router", "n", "network", "s", "summary", "q", "quit"],
             )
             if opt == "r" or opt == "router":
-                self.show_ospf_router(net)
+                self.show_ospf_routers(net)
             elif opt == "n" or opt == "network":
-                self.show_ospf_network(net)
+                self.show_ospf_networks(net)
             elif opt == "s" or opt == "summary":
-                self.show_ospf_summary(net)
+                self.show_ospf_summarys(net)
             elif opt == "q" or opt == "quit":
                 return
 
-    def show_ospf_router(self, net):
+    def show_ospf_routers(self, net):
         self.console.print("Show ospf router")
         columns = Columns(expand=True)
-        areas=net.get_ospf_areas()
+        areas = net.get_ospf_areas()
         for area in sorted(list(areas.keys())):
-            router=areas[area][0]
+            router = areas[area][0]
             consoleout = run(
                 [
                     "lxc-attach",
@@ -242,12 +242,12 @@ class Show:
             )
         self.console.print(columns)
 
-    def show_ospf_network(self, net):
+    def show_ospf_networks(self, net):
         self.console.print("Show ospf network")
         columns = Columns(expand=True)
-        areas=net.get_ospf_areas()
+        areas = net.get_ospf_areas()
         for area in sorted(list(areas.keys())):
-            router=areas[area][0]
+            router = areas[area][0]
             consoleout = run(
                 [
                     "lxc-attach",
@@ -269,12 +269,13 @@ class Show:
                 )
             )
         self.console.print(columns)
-    def show_ospf_summary(self, net):
+
+    def show_ospf_summarys(self, net):
         self.console.print("Show ospf summary")
         columns = Columns(expand=True)
-        areas=net.get_ospf_areas()
+        areas = net.get_ospf_areas()
         for area in sorted(list(areas.keys())):
-            router=areas[area][0]
+            router = areas[area][0]
             consoleout = run(
                 [
                     "lxc-attach",
