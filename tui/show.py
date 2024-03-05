@@ -51,9 +51,7 @@ class Show:
             elif opt == "q":
                 return
 
-    def show_router(
-        self,  router: str, conf: dict, printout: bool = False
-    ) -> Panel:
+    def show_router(self, router: str, conf: dict, printout: bool = False) -> Panel:
         tables = []
         for sect, block in conf.items():
             # self.console.print(sect)
@@ -153,7 +151,13 @@ class Show:
         for router in sorted(net.routes.keys()):
             routes = net.routes[router]
             self.console.print(router)
-            columns.add_renderable(Panel(routes.format_table(), title=router,style="bold "+ ("magenta" if "R" in router else "blue")))
+            columns.add_renderable(
+                Panel(
+                    routes.format_table(),
+                    title=router,
+                    style="bold " + ("magenta" if "R" in router else "blue"),
+                )
+            )
         self.console.print(columns)
 
     def show_vtyshrc(self, net):
@@ -179,6 +183,70 @@ class Show:
         for router in sorted(list(net.routers.keys())):
             consoleout = run(
                 ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip route"],
+                capture_output=True,
+                text=True,
+            ).stdout
+            columns.add_renderable(
+                Panel(
+                    consoleout,
+                    title="[bold magenta]" + router + "[/bold magenta]",
+                )
+            )
+        self.console.print(columns)
+
+    def show_ospf(self, net):
+        self.console.print("Show ospf")
+        while True:
+            opt = Prompt.ask(
+                "Select an option",
+                choices=["r", "router", "n", "network", "s", "summary", "q", "quit"],
+            )
+            if opt == "r" or opt == "router":
+                self.show_ospf_router(net)
+            elif opt == "n" or opt == "network":
+                self.show_ospf_network(net)
+            elif opt == "s" or opt == "summary":
+                self.show_ospf_summary(net)
+            elif opt == "q" or opt == "quit":
+                return
+    def show_ospf_router(self, net):
+        self.console.print("Show ospf router")
+        columns = Columns(expand=True)
+        for router in sorted(list(net.routers.keys())):
+            consoleout = run(
+                ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip ospf database router"],
+                capture_output=True,
+                text=True,
+            ).stdout
+            columns.add_renderable(
+                Panel(
+                    consoleout,
+                    title="[bold magenta]" + router + "[/bold magenta]",
+                )
+            )
+        self.console.print(columns)
+    def show_ospf_network(self, net):
+        self.console.print("Show ospf network")
+        columns = Columns(expand=True)
+        for router in sorted(list(net.routers.keys())):
+            consoleout = run(
+                ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip ospf database network"],
+                capture_output=True,
+                text=True,
+            ).stdout
+            columns.add_renderable(
+                Panel(
+                    consoleout,
+                    title="[bold magenta]" + router + "[/bold magenta]",
+                )
+            )
+        self.console.print(columns)
+    def show_ospf_summary(self, net):
+        self.console.print("Show ospf summary")
+        columns = Columns(expand=True)
+        for router in sorted(list(net.routers.keys())):
+            consoleout = run(
+                ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip ospf database summary"],
                 capture_output=True,
                 text=True,
             ).stdout
