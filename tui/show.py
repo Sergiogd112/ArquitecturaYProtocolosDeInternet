@@ -7,6 +7,7 @@ from rich.layout import Layout
 from rich.columns import Columns
 import pandas as pd
 from Net import Net
+from Net.ip import get_net_ip
 
 
 class Show:
@@ -255,12 +256,14 @@ class Show:
                     )
                 break
         table = Table(show_header=True, header_style="bold magenta")
+        df=df.sort_values(by="Router name")
         for col in df.columns:
             table.add_column(col)
-        for idx, row in df.iterrows():
+        for _, row in df.iterrows():
             table.add_row(*[val for val in row.values])
+        columns.add_renderable(table)
         return Panel(
-            Group(columns,table, fit=True),
+            columns,
             title="[bold magenta]" + area + "[/bold magenta]",
         )
 
@@ -273,7 +276,56 @@ class Show:
 
             columns.add_renderable(self.show_ospf_router(net, router, area))
         self.console.print(columns)
-
+    def show_ospf_network(self, net, router, area):
+        consoleout = run(
+            [
+                "lxc-attach",
+                "-n",
+                router,
+                "--",
+                "vtysh",
+                "-c",
+                "show ip ospf database network",
+            ],
+            capture_output=True,
+            text=True,
+            # check=True,
+        ).stdout
+        arealsarr = consoleout.split("Network Link States (Area ")
+        columns = Columns(expand=True)
+        df = pd.DataFrame(columns=["Link ID", "Advertising Router"])
+        for areals in arealsarr[1:]:
+            areaid = areals.split(")")[0]
+            if areaid == area:
+                content = ")\n".join(areals.split(")\n")[1:]).strip()
+                for ls in content.split("\n\n\n"):
+                    linkid = ls.split("Link ID: ")[1].strip().split(" ")[0]
+                    mask=ls.split("Network Mask: ")[1].strip().split("\n")[0]
+                    netip=get_net_ip(linkid+mask)
+                    brg=net.get_brg_with_netip(netip)
+                    AR = ls.split("Advertising Router: ")[1].split("\n")[0]
+                    df = pd.concat(
+                        [df, pd.DataFrame([[linkid, AR]], columns=df.columns)],
+                        ignore_index=True,
+                    )
+                    columns.add_renderable(
+                        Panel(
+                            ls,
+                            title="[bold magenta]" + netip+"|"+brg + "[/bold magenta]",
+                        )
+                    )
+                break
+        table = Table(show_header=True, header_style="bold magenta")
+        df=df.sort_values(by="Link ID")
+        for col in df.columns:
+            table.add_column(col)
+        for _, row in df.iterrows():
+            table.add_row(*[val for val in row.values])
+        columns.add_renderable(table)
+        return Panel(
+            columns,
+            title="[bold magenta]" + area + "[/bold magenta]",
+        )
     def show_ospf_networks(self, net):
         self.console.print("Show ospf network")
         columns = Columns(expand=True)
