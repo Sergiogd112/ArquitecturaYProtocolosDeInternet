@@ -246,10 +246,17 @@ class Show:
             if areaid == area:
                 content = ")\n".join(areals.split(")\n")[1:]).strip()
                 for ls in content.split("\n\n\n"):
-                    advertising_router = ls.split("Advertising Router: ")[1].split("\n")[0]
+                    advertising_router = ls.split("Advertising Router: ")[1].split(
+                        "\n"
+                    )[0]
                     rname = net.get_router_with_ip(advertising_router)
                     df = pd.concat(
-                        [df, pd.DataFrame([[advertising_router, rname]], columns=df.columns)],
+                        [
+                            df,
+                            pd.DataFrame(
+                                [[advertising_router, rname]], columns=df.columns
+                            ),
+                        ],
                         ignore_index=True,
                     )
                     columns.add_renderable(
@@ -312,13 +319,16 @@ class Show:
                     mask = ls.split("Network Mask: ")[1].strip().split("\n")[0]
                     netip = get_net_ip(linkid + mask)
                     brg = net.get_brg_with_netip(netip)
-                    advertising_router = ls.split("Advertising Router: ")[1].split("\n")[0]
+                    advertising_router = ls.split("Advertising Router: ")[1].split(
+                        "\n"
+                    )[0]
                     routername = net.get_router_with_ip(advertising_router)
                     df = pd.concat(
                         [
                             df,
                             pd.DataFrame(
-                                [[linkid, advertising_router, routername]], columns=df.columns
+                                [[linkid, advertising_router, routername]],
+                                columns=df.columns,
                             ),
                         ],
                         ignore_index=True,
