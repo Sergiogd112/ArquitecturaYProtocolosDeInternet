@@ -4,6 +4,7 @@ import numpy as np
 from colorama import Fore, Style
 from matplotlib import pyplot as plt
 import networkx as nx
+from subprocess import run
 
 from rich.console import Console
 from rich.prompt import Prompt
@@ -256,6 +257,7 @@ class Net:
                 if len(con) > 1 and ip in con["ip"]:
                     return router
         return None
+
     # Helpers
     def get_usable_ranges(self, mainnetip, mask=None):
         if mask is None:
@@ -522,6 +524,13 @@ class Net:
         for router, routes in self.routes.items():
             print(router)
             routes.check_table()
+
+    def tracepath(self, start, end):
+        consoleout = run(
+            ["/home/api/practiques/scripts/tracepath_api", start, end],
+            capture_output=True, text=True
+        ).stdout
+        return consoleout
 
     # Setters
     def assign_subnets(self, mainnetip, mask=None):

@@ -100,7 +100,9 @@ class TUI:
                 ["l", "load", "Load the current configuration"],
                 ["sh", "show", "Show the current configuration"],
                 ["t", "test", "Test the current configuration"],
+                ["tp", "tracepath", "Tracepath"],
                 ["q", "quit", "Quit the scenario"],
+                
             ]
             table.add_column("short", justify="center", style="bold green")
             table.add_column("long", justify="center", style="bold magenta")
@@ -130,6 +132,8 @@ class TUI:
                 self.show.show_scenario(self.net)
             elif option == "t":
                 self.check_scenario()
+            elif option == "tp":
+                self.tracepath()
             elif option == "q":
                 return
             else:
@@ -311,7 +315,13 @@ class TUI:
                 title="Test result",
             )
         self.console.print(panel)
-
+    def tracepath(self):
+        while True:
+            src = Prompt.ask("Source")
+            dst = Prompt.ask("Destination")
+            if src=="" or dst=="":
+                break
+            self.console.print(self.net.tracepath(src,dst))
 
 if __name__ == "__main__":
     tui = TUI()

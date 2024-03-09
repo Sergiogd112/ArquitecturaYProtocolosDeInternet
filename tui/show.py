@@ -5,6 +5,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.layout import Layout
 from rich.columns import Columns
+from rich.syntax import Syntax
 import pandas as pd
 from Net import Net
 from Net.ip import get_net_ip
@@ -35,6 +36,10 @@ class Show:
                     "vtyshrt",
                     "o",
                     "ospf",
+                    "p",
+                    "pimd",
+                    "m",
+                    "mroute",
                     "q",
                     "quit",
                 ],
@@ -53,6 +58,10 @@ class Show:
                 self.show_vtyshrt(net)
             elif opt == "o" or opt == "ospf":
                 self.show_ospf(net)
+            elif opt == "p" or opt == "pimd":
+                self.show_pimd_conf(net)
+            elif opt == "m" or opt == "mroute":
+                self.show_mroute(net)
             elif opt == "q":
                 return
 
@@ -123,7 +132,7 @@ class Show:
             columns.add_renderable(panel)
         self.console.print(columns)
 
-    def show_brctl(self, net):
+    def show_brctl(self, net: Net):
         self.console.print("Show brctl")
         table = Table(show_header=True, header_style="bold magenta")
         consoleout = run(
@@ -150,7 +159,7 @@ class Show:
             table.add_row(*row)
         self.console.print(table)
 
-    def show_routes(self, net):
+    def show_routes(self, net: Net):
         self.console.print("Show routes")
         columns = Columns(expand=True, align="center")
         for router in sorted(net.routes.keys()):
@@ -165,7 +174,7 @@ class Show:
             )
         self.console.print(columns)
 
-    def show_vtyshrc(self, net):
+    def show_vtyshrc(self, net: Net):
         self.console.print("Show vtyshrc")
         columns = Columns(expand=True)
         for router in sorted(list(net.routers.keys())):
@@ -182,7 +191,7 @@ class Show:
             )
         self.console.print(columns)
 
-    def show_vtyshrt(self, net):
+    def show_vtyshrt(self, net: Net):
         self.console.print("Show vtyshrt")
         columns = Columns(expand=True)
         for router in sorted(list(net.routers.keys())):
@@ -199,7 +208,7 @@ class Show:
             )
         self.console.print(columns)
 
-    def show_ospf(self, net):
+    def show_ospf(self, ne: Net):
         self.console.print("Show ospf")
         while True:
             opt = Prompt.ask(
@@ -215,7 +224,7 @@ class Show:
             elif opt == "q" or opt == "quit":
                 return
 
-    def show_ospf_router(self, net, router, area):
+    def show_ospf_router(self, net: Net, router, area):
         consoleout = run(
             [
                 "lxc-attach",
@@ -267,7 +276,7 @@ class Show:
             title="[bold magenta]" + area + "[/bold magenta]",
         )
 
-    def show_ospf_routers(self, net):
+    def show_ospf_routers(self, net: Net):
         self.console.print("Show ospf router")
         columns = Columns(expand=True)
         areas = net.get_ospf_areas()
@@ -277,7 +286,7 @@ class Show:
             columns.add_renderable(self.show_ospf_router(net, router, area))
         self.console.print(columns)
 
-    def show_ospf_network(self, net, router, area):
+    def show_ospf_network(self, net: Net, router, area):
         consoleout = run(
             [
                 "lxc-attach",
@@ -339,7 +348,7 @@ class Show:
             title="[bold magenta]" + area + "[/bold magenta]",
         )
 
-    def show_ospf_networks(self, net):
+    def show_ospf_networks(self, net: Net):
         self.console.print("Show ospf network")
         columns = Columns(expand=True)
         areas = net.get_ospf_areas()
@@ -348,7 +357,7 @@ class Show:
             columns.add_renderable(self.show_ospf_network(net, router, area))
         self.console.print(columns)
 
-    def show_ospf_summarys(self, net):
+    def show_ospf_summarys(self, net: Net):
         self.console.print("Show ospf summary")
         columns = Columns(expand=True)
         areas = net.get_ospf_areas()
@@ -372,6 +381,40 @@ class Show:
                 Panel(
                     consoleout,
                     title="[bold magenta]" + area + "[/bold magenta]",
+                )
+            )
+        self.console.print(columns)
+
+    def show_pimd_conf(self, net: Net):
+        self.console.print("Show pimd conf")
+        columns = Columns(expand=True)
+        for router in sorted(list(net.routers.keys())):
+            consoleout = run(
+                ["lxc-attach", "-n", router, "--", "cat", "/root/pimd/pimd.conf"],
+                capture_output=True,
+                text=True,
+            ).stdout
+            columns.add_renderable(
+                Panel(
+                    Syntax(consoleout, "conf", line_numbers=True),
+                    title="[bold magenta]" + router + "[/bold magenta]",
+                )
+            )
+        self.console.print(columns)
+
+    def show_mroute(self, net: Net):
+        self.console.print("Show mroute")
+        columns = Columns(expand=True)
+        for router in sorted(list(net.routers.keys())):
+            consoleout = run(
+                ["lxc-attach", "-n", router, "--", "mroute"],
+                capture_output=True,
+                text=True,
+            ).stdout
+            columns.add_renderable(
+                Panel(
+                    consoleout,
+                    title="[bold magenta]" + router + "[/bold magenta]",
                 )
             )
         self.console.print(columns)
