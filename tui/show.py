@@ -49,7 +49,7 @@ class Show:
             elif opt == "b" or opt == "bridges":
                 self.show_bridges(net)
             elif opt == "brctl":
-                self.show_brctl(net)
+                self.show_brctl()
             elif opt == "rt":
                 self.show_routes(net)
             elif opt == "vrc":
@@ -132,7 +132,7 @@ class Show:
             columns.add_renderable(panel)
         self.console.print(columns)
 
-    def show_brctl(self, net: Net):
+    def show_brctl(self):
         self.console.print("Show brctl")
         table = Table(show_header=True, header_style="bold magenta")
         consoleout = run(
