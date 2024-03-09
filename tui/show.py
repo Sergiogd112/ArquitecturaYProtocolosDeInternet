@@ -208,7 +208,7 @@ class Show:
             )
         self.console.print(columns)
 
-    def show_ospf(self, ne: Net):
+    def show_ospf(self, net: Net):
         self.console.print("Show ospf")
         while True:
             opt = Prompt.ask(
