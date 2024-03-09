@@ -80,9 +80,8 @@ class Show:
                 tables[-1].add_column(col)
 
             for idx, row in df.iterrows():
-                tables[-1].add_row(
-                    *([str(idx)] + [val.__repr__() for val in row.values])
-                )
+                tables[-1].add_row(*([str(idx)] + [repr(val) for val in row.values]))
+
             # self.console.print(tables[-1])
         if printout:
             self.console.print(
@@ -247,17 +246,17 @@ class Show:
             if areaid == area:
                 content = ")\n".join(areals.split(")\n")[1:]).strip()
                 for ls in content.split("\n\n\n"):
-                    AR = ls.split("Advertising Router: ")[1].split("\n")[0]
-                    rname = net.get_router_with_ip(AR)
+                    advertising_router = ls.split("Advertising Router: ")[1].split("\n")[0]
+                    rname = net.get_router_with_ip(advertising_router)
                     df = pd.concat(
-                        [df, pd.DataFrame([[AR, rname]], columns=df.columns)],
+                        [df, pd.DataFrame([[advertising_router, rname]], columns=df.columns)],
                         ignore_index=True,
                     )
                     columns.add_renderable(
                         Panel(
                             ls,
                             title="[bold magenta]"
-                            + AR
+                            + advertising_router
                             + "|"
                             + rname
                             + "[/bold magenta]",
@@ -313,13 +312,13 @@ class Show:
                     mask = ls.split("Network Mask: ")[1].strip().split("\n")[0]
                     netip = get_net_ip(linkid + mask)
                     brg = net.get_brg_with_netip(netip)
-                    AR = ls.split("Advertising Router: ")[1].split("\n")[0]
-                    routername = net.get_router_with_ip(AR)
+                    advertising_router = ls.split("Advertising Router: ")[1].split("\n")[0]
+                    routername = net.get_router_with_ip(advertising_router)
                     df = pd.concat(
                         [
                             df,
                             pd.DataFrame(
-                                [[linkid, AR, routername]], columns=df.columns
+                                [[linkid, advertising_router, routername]], columns=df.columns
                             ),
                         ],
                         ignore_index=True,
