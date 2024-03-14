@@ -258,6 +258,29 @@ class Net:
                     return router
         return None
 
+    def get_asnums(self):
+        asnums = []
+        for _, con in self.routers:
+            if "bgp" in con:
+                asnums += [con["bgp"]["as"]]
+        return asnums
+
+    def get_router_ips(self, router) -> list:
+        ips = []
+        for _, con in self.routers[router]["iface"].items():
+            if len(con) > 1 and "ip" in con:
+                ips.append(con["ip"])
+        return ips
+
+    def get_net_from_bgp_as(self, asnum):
+        for _, value in self.routers.items():
+            if "bgp" in value and value["bgp"]["as"] == asnum:
+                return value["bgp"]["network"]
+        return None
+
+    def __repr__(self):
+        return f"Net({str(self.routers)}, {str(self.bridges)}, {str(self.routes)})"
+
     # Helpers
     def get_usable_ranges(self, mainnetip, mask=None):
         if mask is None:
@@ -528,7 +551,8 @@ class Net:
     def tracepath(self, start, end):
         consoleout = run(
             ["/home/api/practiques/scripts/tracepath_api", start, end],
-            capture_output=True, text=True
+            capture_output=True,
+            text=True,
         ).stdout
         return consoleout
 
@@ -709,3 +733,46 @@ class Net:
                 os.system(f"unplug-if-brg {bridge} {router}-{iface}")
 
         self.bridges = self.generate_bridges(self.routers)
+
+    def set_bgp(self, router, asnum, router_id, network, apply=False):
+        self.routers[router]["bgp"] = {"as": asnum, "id": router_id, "network": network}
+        if apply:
+            os.system(
+                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'router bgp {asnum}'"
+                + f" -c 'bgp router-id {router_id}' -c 'network {network}'"
+            )
+
+    def next_hop(self, router, dest):
+        consoleout = run(
+            ["lxc-attach", "-n", router, "--", "ip", "route", "get", dest],
+            capture_output=True,
+            text=True,
+        ).stdout
+        via = consoleout.split("via ")[1].split(" ")[0].stip()
+        dev = consoleout.split("dev ")[1].split(" ")[0].strip()
+        src = consoleout.split("src ")[1].split(" ")[0].strip()
+        uid = consoleout.split("uid ")[1].split(" ")[0].strip()
+        return {"via": via, "dev": dev, "src": src, "uid": uid}
+
+    def add_bgp_neighbor(self, router, neighbor_name, apply=False):
+        if "bgp" not in self.routers[router].keys():
+            Console().print("BGP not enabled in router")
+            return
+        if "neighbors" not in self.routers[router]["bgp"].keys():
+            self.routers[router]["bgp"]["neighbors"] = []
+        remote = self.routers[neighbor_name]["bgp"]["as"]
+        nexthop=self.next_hop(neighbor_name, self.routers[router]["iface"]["eth0"]["ip"].split("/")[0])
+        neigh=self.routers[neighbor_name]["iface"][nexthop["dev"]]["ip"].split("/")[0]
+        self.routers[router]["bgp"]["neighbors"].append(
+            {
+                "name": neighbor_name,
+                "remote": remote,
+                "nexthop": nexthop,
+                "neigh": neigh
+            }
+        )
+        if apply:
+            os.system(
+                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'router bgp {self.routers[router]['bgp']['as']}'"
+                + f" -c 'neighbor {neigh} remote-as {remote}'"
+            )

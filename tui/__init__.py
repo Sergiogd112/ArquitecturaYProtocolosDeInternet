@@ -175,9 +175,11 @@ class TUI:
             idx = int(idx)
             self.console.print("Selected: " + starts[idx])
             os.system(starts[idx])
+            self.console.print("Loading subconfigs")
             loaders.read_scenario_subconfigs(
                 self.net, scenario, starts[idx].split("-")[-1]
             )
+            self.console.print("Subconfigs loaded")
             self.show.show_routers(self.net)
             self.show.show_bridges(self.net)
             self.show.show_routes(self.net)

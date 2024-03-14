@@ -273,6 +273,37 @@ def read_vtyshrc(net, contents: str) -> Tuple[int, dict]:
                 net = line.split("network ")[1].split(" ")[0]
                 res["ospf"] += [{"area": area, "network": net}]
                 changes += 1
+        if "router rip" in block:
+            if "rip" not in res:
+                res["rip"] = {}
+            for line in block.split("\n")[1:]:
+                opt, port = line.strip().split(" ")
+                if port not in res["rip"]:
+                    res["rip"][port] = {}
+                res["rip"][port][opt] = True
+                changes += 1
+        if "router bgp" in block:
+            if "bgp" not in res:
+                res["bgp"] = {}
+            bgp_as = block.split("router bgp ")[1].split("\n")[0].strip()
+            res["bgp"]["as"] = bgp_as
+            for line in block.split("\n")[1:]:
+                if "id" in line:
+                    res["bgp"]["id"] = line.strip().split("id ")[1].split("\n")[0]
+                    changes += 1
+                if "network" in line:
+                    net = line.strip().split("network ")[1].split("\n")[0]
+                    res["bgp"]["network"] = net
+                    changes += 1
+                if "neighbor" in line:
+                    neigh = line.strip().split("neighbor ")[1].split(" ")[0]
+                    remote = line.strip().split("remote-as ")[1].split("\n")[0]
+                    if "neighbor" not in res["bgp"] or res["bgp"]["neighbor"] is None:
+                        res["bgp"]["neighbor"] = [{"neigh": neigh, "remote": remote}]
+                        changes += 1
+                        continue
+                    res["bgp"]["neighbor"] += [{"neigh": neigh, "remote": remote}]
+                    changes += 1
 
     return changes, res
 
@@ -288,6 +319,7 @@ def load_vtyshrt(net):
         None
     """
     for router, _ in net.routers.items():
+        # Console().print(f"Loading VTYSH routes for {router}")
         console_out = os.popen(
             f"lxc-attach -n {router} -- vtysh -c 'show ip route'"
         ).read()
@@ -343,6 +375,13 @@ def load_running_config(net):
                 for i, row in enumerate(net.routers[router]["ospf"]):
                     if row["network"] == netip:
                         net.routers[router]["ospf"][i]["p2p"] = True
+            if "bgp" in res:
+                net.routers[router]["bgp"] = res["bgp"]
+                if "neighbor" in res["bgp"]:
+                    for n, neigh in enumerate(res["bgp"]["neighbor"]):
+                        net.routers[router]["bgp"]["neighbor"][n]["name"] = (
+                            net.get_router_with_ip(neigh["neigh"])
+                        )
 
     # Console().print(self.routers)
     net.bridges = net.generate_bridges(net.routers)

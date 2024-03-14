@@ -59,7 +59,7 @@ class Configure:
                 "Select a section",
                 choices=["iface", "ospf", "bgp"],
             )
-            Show().show_router( router, net.routers[router], True)
+            Show().show_router(router, net.routers[router], True)
             if section == "iface":
                 self.configure_iface(net, router)
             elif section == "ospf":
@@ -79,7 +79,7 @@ class Configure:
     def configure_iface(self, net, router):
         self.console.print("Configure iface")
         while True:
-            Show().show_router( router, net.routers[router], True)
+            Show().show_router(router, net.routers[router], True)
 
             iface = Prompt.ask(
                 "Select an iface",
@@ -108,11 +108,10 @@ class Configure:
     def configure_ospf(self, net, router):
         self.console.print("Configure ospf")
         while True:
-            Show().show_router( router, net.routers[router], True)
+            Show().show_router(router, net.routers[router], True)
             area = Prompt.ask(
                 "Select an area",
-                choices=["q", "quit", "c", "create"]
-                + net.get_ospf_areas(),
+                choices=["q", "quit", "c", "create"] + net.get_ospf_areas(),
             )
             if area in ["q", "quit"]:
                 return
@@ -131,8 +130,61 @@ class Configure:
 
                 net.set_ospf(router, area, netip + "/" + str(mask), True)
 
+    def setup_bgp(self, net, router):
+        asnum = Prompt.ask(
+            "Enter the as number",
+            choices=["q", "quit", "c", "create"] + net.get_asnums(),
+        )
+        if asnum in ["q", "quit"]:
+            return
+        if asnum in ["c", "create"]:
+            asnum = Prompt.ask("Enter the as number:")
+        id = Prompt.ask(
+            "Enter the router id:",
+            choices=["q", "quit"] + net.get_router_ips(router) + ["other"],
+        )
+        if id == "q" or id == "quit":
+            return
+        if id == "other":
+            id = Prompt.ask("Enter the router id:")
+
+        network = Prompt.ask(
+            "Enter the network ip/mask", default=net.get_net_from_bgp_as(asnum)
+        )
+        net.set_bgp(router, asnum, id, network, True)
+
+    def setup_bgp_neighbor(self, net, router):
+        self.console.print("Configure bgp neighbor")
+        while True:
+            Show().show_router(router, net.routers[router], True)
+            if "bgp" not in net.routers[router]:
+                self.setup_bgp(net, router)
+                continue
+            neighbor = Prompt.ask(
+                "Select a neighbor",
+                choices=["q", "quit"] + list(net.routers[router]["bgp"]["neighbor"]),
+            )
+            if neighbor in ["q", "quit"]:
+                return
+            net.add_bgp_neighbor(router, neighbor, True)
+
     def configure_bgp(self, net, router):
-        self.console.print("TODO: Configure bgp")
+        self.console.print("Configure bgp")
+        while True:
+            Show().show_router(router, net.routers[router], True)
+            if "bgp" not in net.routers[router]:
+                self.setup_bgp(net, router)
+                continue
+            opt = Prompt.ask(
+                "Select an option",
+                choices=["setup", "neighbor", "q", "quit"],
+            )
+            if opt in ["q", "quit"]:
+                return
+            if opt == "setup":
+                self.setup_bgp(net, router)
+            elif opt == "neighbor":
+                self.setup_bgp_neighbor(net, router)
 
     def configure_bridges(self, net):
         self.console.print("Configure bridges")
@@ -190,7 +242,7 @@ class Configure:
                     return
                 net.set_bridge_connect(bridge, router, iface, apply=True)
             else:
-                Show().show_router( router, net.routers[router], True)
+                Show().show_router(router, net.routers[router], True)
                 bridge = Prompt.ask(
                     "Select a bridge",
                     choices=["q", "quit"] + list(net.bridges.keys()),

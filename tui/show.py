@@ -6,6 +6,8 @@ from rich.prompt import Prompt
 from rich.layout import Layout
 from rich.columns import Columns
 from rich.syntax import Syntax
+from rich.pretty import Pretty
+
 import pandas as pd
 from Net import Net
 from Net.ip import get_net_ip
@@ -20,31 +22,43 @@ class Show:
         while True:
             self.console.print("Show scenario")
             self.console.print("What do you want to show?")
+            commands = [
+                ["n", "net"],
+                ["r", "routers"],
+                ["b", "briges"],
+                ["brctl"],
+                ["rt", "routes"],
+                ["vrc", "vtyshrc"],
+                ["vrt", "vtyshrt"],
+                ["o", "ospf"],
+                ["p", "pimd"],
+                ["m", "mroute"],
+                ["bgp"],
+                ["bgps", "bgp summary"],
+                ["q", "quit"],
+            ]
+            table = Table(
+                show_header=True,
+                header_style="bold magenta",
+                title="Commands",
+                show_lines=True,
+            )
+            table.add_column("Short command")
+            table.add_column("Command")
+            for cmd in commands:
+                if len(cmd) == 2:
+                    table.add_row(cmd[0], cmd[1])
+                else:
+                    table.add_row("", cmd[0])
+            self.console.print(table, justify="center")
             opt = Prompt.ask(
                 "Select an option",
-                choices=[
-                    "r",
-                    "routers",
-                    "b",
-                    "briges",
-                    "brctl",
-                    "rt",
-                    "routes",
-                    "vrc",
-                    "vtyshrc",
-                    "vrt",
-                    "vtyshrt",
-                    "o",
-                    "ospf",
-                    "p",
-                    "pimd",
-                    "m",
-                    "mroute",
-                    "q",
-                    "quit",
-                ],
+                choices=[cmd for row in commands for cmd in row],
+                show_choices=False,
             )
-            if opt == "r" or opt == "routers":
+            if opt == "n" or opt == "net":
+                self.show_net(net)
+            elif opt == "r" or opt == "routers":
                 self.show_routers(net)
             elif opt == "b" or opt == "bridges":
                 self.show_bridges(net)
@@ -62,8 +76,51 @@ class Show:
                 self.show_pimd_conf(net)
             elif opt == "m" or opt == "mroute":
                 self.show_mroute(net)
+            elif opt == "bgp":
+                self.show_bgp(net)
+            elif opt == "bgps" or opt == "bgp summary":
+                self.show_bgp_summary(net)
             elif opt == "q":
                 return
+
+    def show_net(self, net: Net):
+        self.console.print("Show net")
+        self.console.print(Panel(Pretty(net.routers), title="Routers"))
+        self.console.print(Panel(Pretty(net.bridges), title="Bridges"))
+
+    @staticmethod
+    def dict_to_md(data: dict) -> str:
+        # generate markdown list from a dictionary
+        # recursive function
+        md = ""
+        for key, value in data.items():
+            if value is None:
+                continue
+            if isinstance(value, dict):
+                md += f"- {key}:\n"
+                md += "  " + Show.dict_to_md(value).replace("\n", "\n  ")
+            elif isinstance(value, list):
+                md += f"- {key}:\n"
+                md += "  " + Show.list_to_md(value).replace("\n", "\n  ")
+            else:
+                md += f"- {key}: {value}\n"
+        return md
+
+    @staticmethod
+    def list_to_md(data: list) -> str:
+        # generate markdown list from a list
+        # recursive function
+        md = ""
+        for n,item in enumerate(data):
+            if isinstance(item, dict):
+                md+=f"- {n}:\n"                
+                md += "  " + Show.dict_to_md(item).replace("\n", "\n  ")
+            elif isinstance(item, list):
+                md+=f"- {n}:\n"
+                md += "  " + Show.list_to_md(item).replace("\n", "\n  ")
+            else:
+                md += f"- {n}: {item}\n"
+        return md
 
     def show_router(self, router: str, conf: dict, printout: bool = False) -> Panel:
         tables = []
@@ -74,6 +131,9 @@ class Show:
             df = pd.DataFrame(block).T
             if "ospf" in sect:
                 df = df.T
+            if "bgp" in sect:
+                tables += [Panel(Show.dict_to_md(block), title=sect)]
+                continue
             tables += [Table(show_header=True, title=sect, header_style="bold magenta")]
             tables[-1].add_column("Key")
             for col in df.columns:
@@ -417,6 +477,48 @@ class Show:
         for router in sorted(list(net.routers.keys())):
             consoleout = run(
                 ["lxc-attach", "-n", router, "--", "mroute"],
+                capture_output=True,
+                text=True,
+            ).stdout
+            columns.add_renderable(
+                Panel(
+                    consoleout,
+                    title="[bold magenta]" + router + "[/bold magenta]",
+                )
+            )
+        self.console.print(columns)
+
+    def show_bgp(self, net: Net):
+        self.console.print("Show bgp")
+        columns = Columns(expand=True)
+        for router in sorted(list(net.routers.keys())):
+            consoleout = run(
+                ["lxc-attach", "-n", router, "--", "vtysh", "-c", "show ip bgp"],
+                capture_output=True,
+                text=True,
+            ).stdout
+            columns.add_renderable(
+                Panel(
+                    consoleout,
+                    title="[bold magenta]" + router + "[/bold magenta]",
+                )
+            )
+        self.console.print(columns)
+
+    def show_bgp_summary(self, net: Net):
+        self.console.print("Show bgp summary")
+        columns = Columns(expand=True)
+        for router in sorted(list(net.routers.keys())):
+            consoleout = run(
+                [
+                    "lxc-attach",
+                    "-n",
+                    router,
+                    "--",
+                    "vtysh",
+                    "-c",
+                    "show ip bgp summary",
+                ],
                 capture_output=True,
                 text=True,
             ).stdout

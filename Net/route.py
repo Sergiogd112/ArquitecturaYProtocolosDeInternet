@@ -144,7 +144,7 @@ class RouteTable:
     def split_rows(row):
         data = row.replace("  ", " ").replace("  ", " ").split(" ")
         Code = data[0].strip()
-        network = data[1].strip()
+        network = data[1].strip().split(" ")[0].strip()
         mask = None
         if network == "*":
             Code = "*"
@@ -166,10 +166,10 @@ class RouteTable:
             .replace("is directly connected", "direct connect")
             .strip()
         )
-        interface = data2[1].strip()
+        interface = data2[1].strip() if "recursively" not in data2[1] else "recursive"
         age = "x"
         if ":" in row:
-            age = data2[2].strip()
+            age = row.split(",")[-1].strip()
 
         return {
             "Type": Code[0],
@@ -184,6 +184,7 @@ class RouteTable:
         }
 
     def loads_vtysh_routes(self, data):
+        # Console().print(data)
         guide = "\n".join(data.splitlines()[:3])
         rows = data.splitlines()[4:]
         table = [RouteTable.split_rows(row) for row in rows]
@@ -245,9 +246,6 @@ class RouteTable:
                 style="green" if row["Selected"] else "white",
             )
         return table
-
-    def __repr__(self) -> str:
-        return self.format_table()
 
     def get_nexthop(self, ip):
         if "/" in ip:
@@ -401,3 +399,6 @@ class RouteTable:
                         print(group)
                         # raise an exception
                         raise Exception("Duplicate route")
+
+    def __repr__(self) -> str:
+        return repr(self.table)
