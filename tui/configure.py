@@ -1,6 +1,8 @@
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.layout import Layout
+from rich.panel import Panel
+from rich.columns import Columns
 from Net import loaders
 from .show import Show
 
@@ -160,12 +162,36 @@ class Configure:
             if "bgp" not in net.routers[router]:
                 self.setup_bgp(net, router)
                 continue
+            columns = Columns()
+
+            adj = net.get_neighbors(router)
+            if len(adj) == 0:
+                self.console.print("No neighbors")
+                return
+            columns.add_renderable(Panel("- " + "\n- ".join(adj), title="Neighbors"))
+            same_as = [
+                x
+                for x in net.get_routers_with_bgp_as(
+                    net.routers[router]["bgp"]["asnum"]
+                )
+                if x != router
+            ]
+            columns.add_renderable(Panel("- " + "\n- ".join(same_as), title="Same AS"))
+            columns.add_renderable(
+                Panel("- " + "\n- ".join(net.routers.keys()), title="All")
+            )
+            columns.add_renderable(Panel("q, quit", title="Quit"))
+            self.console.print(columns)
             neighbor = Prompt.ask(
                 "Select a neighbor",
-                choices=["q", "quit"] + list(net.routers[router]["bgp"]["neighbor"]),
+                choices=["q", "quit"] + list(net.routers.keys()),
+                show_choices=False,
             )
             if neighbor in ["q", "quit"]:
                 return
+            if "bgp" not in net.routers[neighbor]:
+                self.console.print("Neighbor has no bgp, setting up bgp for neighbor")
+                self.setup_bgp(net, neighbor)
             net.add_bgp_neighbor(router, neighbor, True)
 
     def configure_bgp(self, net, router):

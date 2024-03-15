@@ -278,6 +278,25 @@ class Net:
                 return value["bgp"]["network"]
         return None
 
+    def get_neighbors(self, router):
+        # gets the neighbors of a router that are in the same bridge
+        neighbors = []
+        for _, con in self.routers[router]["iface"].items():
+            if len(con) > 1:
+                brg = con["brg"]
+                for nrouter in self.bridges[brg]["routers"]:
+                    if nrouter == router:
+                        continue
+                    neighbors.append(nrouter)
+        return neighbors
+
+    def get_routers_with_bgp_as(self, asnum):
+        routers = []
+        for router, value in self.routers.items():
+            if "bgp" in value and value["bgp"]["as"] == asnum:
+                routers.append(router)
+        return routers
+
     def __repr__(self):
         return f"Net({str(self.routers)}, {str(self.bridges)}, {str(self.routes)})"
 
@@ -760,15 +779,20 @@ class Net:
             return
         if "neighbors" not in self.routers[router]["bgp"].keys():
             self.routers[router]["bgp"]["neighbors"] = []
+        if "bgp" not in self.routers[neighbor_name].keys():
+            Console().print("BGP not enabled in neighbor")
+            return
         remote = self.routers[neighbor_name]["bgp"]["as"]
-        nexthop=self.next_hop(neighbor_name, self.routers[router]["iface"]["eth0"]["ip"].split("/")[0])
-        neigh=self.routers[neighbor_name]["iface"][nexthop["dev"]]["ip"].split("/")[0]
+        nexthop = self.next_hop(
+            neighbor_name, self.routers[router]["iface"]["eth0"]["ip"].split("/")[0]
+        )
+        neigh = self.routers[neighbor_name]["iface"][nexthop["dev"]]["ip"].split("/")[0]
         self.routers[router]["bgp"]["neighbors"].append(
             {
                 "name": neighbor_name,
                 "remote": remote,
                 "nexthop": nexthop,
-                "neigh": neigh
+                "neigh": neigh,
             }
         )
         if apply:

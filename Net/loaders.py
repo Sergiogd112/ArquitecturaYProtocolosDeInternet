@@ -328,6 +328,52 @@ def load_vtyshrt(net):
         net.routes[router].loads_vtysh_routes(console_out)
 
 
+def load_running_config_router(net, router):
+    # get the vtysh running config
+    consoleout = (
+        os.popen(f"lxc-attach -n {router} -- vtysh -c 'show running'")
+        .read()
+        .split("end")[0]
+    )
+    ch, res = read_vtyshrc(net, consoleout)
+    if ch < 1:
+        return
+    if "ospf" in res:
+        net.routers[router]["ospf"] = res["ospf"]
+
+    for iface, con in res["iface"].items():
+        if len(con) < 1:
+            continue
+        if iface not in net.routers[router]["iface"].keys():
+            net.routers[router]["iface"][iface] = con
+        else:
+            net.routers[router]["iface"][iface] = {
+                "brg": net.routers[router]["iface"][iface]["brg"],
+                "ip": (
+                    con["ip"]
+                    if "ip" in con and con["ip"] is not None
+                    else (
+                        net.routers[router]["iface"][iface]["ip"]
+                        if "ip" in net.routers[router]["iface"][iface]
+                        else None
+                    )
+                ),
+            }
+        if "ospf" in con:
+            net.routers[router]["iface"][iface]["ospf"] = con["ospf"]
+            netip = get_net_ip(con["ip"])
+            for i, row in enumerate(net.routers[router]["ospf"]):
+                if row["network"] == netip:
+                    net.routers[router]["ospf"][i]["p2p"] = True
+        if "bgp" in res:
+            net.routers[router]["bgp"] = res["bgp"]
+            if "neighbor" in res["bgp"]:
+                for n, neigh in enumerate(res["bgp"]["neighbor"]):
+                    net.routers[router]["bgp"]["neighbor"][n]["name"] = (
+                        net.get_router_with_ip(neigh["neigh"])
+                    )
+
+
 def load_running_config(net):
     """
     Loads the running configuration of the network.
@@ -339,49 +385,7 @@ def load_running_config(net):
         None
     """
     for router, _ in net.routers.items():
-        # get the vtysh running config
-        consoleout = (
-            os.popen(f"lxc-attach -n {router} -- vtysh -c 'show running'")
-            .read()
-            .split("end")[0]
-        )
-        ch, res = read_vtyshrc(net, consoleout)
-        if ch < 1:
-            continue
-        if "ospf" in res:
-            net.routers[router]["ospf"] = res["ospf"]
-
-        for iface, con in res["iface"].items():
-            if len(con) < 1:
-                continue
-            if iface not in net.routers[router]["iface"].keys():
-                net.routers[router]["iface"][iface] = con
-            else:
-                net.routers[router]["iface"][iface] = {
-                    "brg": net.routers[router]["iface"][iface]["brg"],
-                    "ip": (
-                        con["ip"]
-                        if "ip" in con and con["ip"] is not None
-                        else (
-                            net.routers[router]["iface"][iface]["ip"]
-                            if "ip" in net.routers[router]["iface"][iface]
-                            else None
-                        )
-                    ),
-                }
-            if "ospf" in con:
-                net.routers[router]["iface"][iface]["ospf"] = con["ospf"]
-                netip = get_net_ip(con["ip"])
-                for i, row in enumerate(net.routers[router]["ospf"]):
-                    if row["network"] == netip:
-                        net.routers[router]["ospf"][i]["p2p"] = True
-            if "bgp" in res:
-                net.routers[router]["bgp"] = res["bgp"]
-                if "neighbor" in res["bgp"]:
-                    for n, neigh in enumerate(res["bgp"]["neighbor"]):
-                        net.routers[router]["bgp"]["neighbor"][n]["name"] = (
-                            net.get_router_with_ip(neigh["neigh"])
-                        )
+        load_running_config_router(net, router)
 
     # Console().print(self.routers)
     net.bridges = net.generate_bridges(net.routers)
