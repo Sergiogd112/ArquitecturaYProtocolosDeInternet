@@ -193,6 +193,16 @@ class Configure:
                 self.console.print("Neighbor has no bgp, setting up bgp for neighbor")
                 self.setup_bgp(net, neighbor)
             net.add_bgp_neighbor(router, neighbor, True)
+            if router not in net.routers[neighbor]["bgp"]["neighbors"]:
+                self.console.print(
+                    "Neighbor has no bgp neighbor, setting up bgp neighbor for neighbor"
+                )
+                opt = Prompt.ask(
+                    "Do you want to add the neighbor to the neighbor?",
+                    choices=["y", "yes", "n", "no"],
+                )
+                if opt in ["y", "yes"]:
+                    net.add_bgp_neighbor(neighbor, router, True)
 
     def configure_bgp(self, net, router):
         self.console.print("Configure bgp")
