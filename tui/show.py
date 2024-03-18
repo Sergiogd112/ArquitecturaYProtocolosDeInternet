@@ -127,13 +127,15 @@ class Show:
         for sect, block in conf.items():
             # self.console.print(sect)
             # self.console.print(block)
+            # self.console.print(block)
+            # Prompt.ask("Press enter to continue")
 
-            df = pd.DataFrame(block).T
-            if "ospf" in sect:
-                df = df.T
             if "bgp" in sect:
                 tables += [Panel(Show.dict_to_md(block), title=sect)]
                 continue
+            df = pd.DataFrame(block).T
+            if "ospf" in sect:
+                df = df.T
             tables += [Table(show_header=True, title=sect, header_style="bold magenta")]
             tables[-1].add_column("Key")
             for col in df.columns:

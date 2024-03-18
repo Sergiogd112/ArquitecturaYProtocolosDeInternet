@@ -269,7 +269,12 @@ class Net:
     def get_router_ips(self, router) -> list:
         ips = []
         for _, con in self.routers[router]["iface"].items():
-            if len(con) > 1 and "ip" in con:
+            if (
+                len(con) > 1
+                and "ip" in con
+                and con["ip"] is not None
+                and con["ip"] != ""
+            ):
                 ips.append(con["ip"])
         return ips
 
@@ -759,7 +764,12 @@ class Net:
         self.bridges = self.generate_bridges(self.routers)
 
     def set_bgp(self, router, asnum, router_id, network, apply=False):
-        self.routers[router]["bgp"] = {"as": asnum, "id": router_id, "network": network}
+        self.routers[router]["bgp"] = {
+            "as": asnum,
+            "id": router_id,
+            "network": network,
+            "neighbors": [],
+        }
         if apply:
             os.system(
                 f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'router bgp {asnum}'"
@@ -767,12 +777,20 @@ class Net:
             )
 
     def next_hop(self, router, dest):
+        cmd = " ".join(["lxc-attach", "-n", router, "--", "ip", "route", "get", dest])
+        print(cmd)
         consoleout = run(
             ["lxc-attach", "-n", router, "--", "ip", "route", "get", dest],
             capture_output=True,
             text=True,
         ).stdout
-        via = consoleout.split("via ")[1].split(" ")[0].stip()
+        print(consoleout)
+        if consoleout == "":
+            return None
+        if "via" in consoleout:
+            via = consoleout.split("via ")[1].split(" ")[0].stip()
+        else:
+            via = None
         dev = consoleout.split("dev ")[1].split(" ")[0].strip()
         src = consoleout.split("src ")[1].split(" ")[0].strip()
         uid = consoleout.split("uid ")[1].split(" ")[0].strip()
@@ -788,21 +806,28 @@ class Net:
             Console().print("BGP not enabled in neighbor")
             return
         remote = self.routers[neighbor_name]["bgp"]["as"]
-        nexthop = self.next_hop(
-            neighbor_name, self.routers[router]["iface"]["eth0"]["ip"].split("/")[0]
-        )
+        for port in self.routers[router]["iface"].keys():
+            nexthop = self.next_hop(
+                neighbor_name, self.routers[router]["iface"][port]["ip"].split("/")[0]
+            )
+            if nexthop is not None:
+                break
         neigh = self.routers[neighbor_name]["iface"][nexthop["dev"]]["ip"].split("/")[0]
         self.routers[router]["bgp"]["neighbors"].append(
             {
                 "name": neighbor_name,
                 "remote": remote,
-                "nexthop": nexthop,
                 "neigh": neigh,
             }
         )
         if apply:
             os.system(
                 f"lxc-attach -n {router} -- vtysh -c 'configure terminal' "
-                + "-c 'router bgp {self.routers[router]['bgp']['as']}'"
+                + f"-c 'router bgp {self.routers[router]['bgp']['as']}'"
+                + f" -c 'neighbor {neigh} remote-as {remote}'"
+            )
+            print(
+                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' "
+                + f"-c 'router bgp {self.routers[router]['bgp']['as']}'"
                 + f" -c 'neighbor {neigh} remote-as {remote}'"
             )

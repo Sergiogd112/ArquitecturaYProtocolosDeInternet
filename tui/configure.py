@@ -145,7 +145,9 @@ class Configure:
             asnum = Prompt.ask("Enter the as number:")
         router_id = Prompt.ask(
             "Enter the router id:",
-            choices=["q", "quit"] + net.get_router_ips(router) + ["other"],
+            choices=["q", "quit"]
+            + [ip.split("/")[0] for ip in net.get_router_ips(router)]
+            + ["other"],
         )
         if router_id == "q" or router_id == "quit":
             return
@@ -274,9 +276,7 @@ class Configure:
             columns.add_renderable(Panel("- " + "\n- ".join(adj), title="Neighbors"))
             same_as = [
                 x
-                for x in net.get_routers_with_bgp_as(
-                    net.routers[router]["bgp"]["asnum"]
-                )
+                for x in net.get_routers_with_bgp_as(net.routers[router]["bgp"]["as"])
                 if x != router
             ]
             columns.add_renderable(Panel("- " + "\n- ".join(same_as), title="Same AS"))
@@ -296,10 +296,12 @@ class Configure:
                 self.console.print("Neighbor has no bgp, setting up bgp for neighbor")
                 self.setup_bgp(net, neighbor)
             net.add_bgp_neighbor(router, neighbor, True)
-            if router not in net.routers[neighbor]["bgp"]["neighbors"]:
+            if "bgp" not in net.routers[neighbor]:
                 self.console.print(
                     "Neighbor has no bgp neighbor, setting up bgp neighbor for neighbor"
                 )
+                self.setup_bgp(net, neighbor)
+            if router not in net.routers[neighbor]["bgp"]["neighbor"]:
                 opt = Prompt.ask(
                     "Do you want to add the neighbor to the neighbor?",
                     choices=["y", "yes", "n", "no"],
@@ -322,13 +324,13 @@ class Configure:
                 continue
             opt = Prompt.ask(
                 "Select an option",
-                choices=["setup", "neighbor", "q", "quit"],
+                choices=["s", "setup", "n", "neighbor", "q", "quit"],
             )
             if opt in ["q", "quit"]:
                 return
-            if opt == "setup":
+            if opt == "setup" or opt == "s":
                 self.setup_bgp(net, router)
-            elif opt == "neighbor":
+            elif opt == "neighbor" or opt == "n":
                 self.setup_bgp_neighbor(net, router)
 
     def configure_bridges(self, net):
@@ -453,6 +455,7 @@ class Configure:
                 Show().show_bridges(net)
             elif src == "a" or src == "all":
                 loaders.load_running_config(net)
+                # Show().show_net(net)
                 Show().show_routers(net)
                 loaders.load_vtyshrt(net)
                 Show().show_routes(net)
