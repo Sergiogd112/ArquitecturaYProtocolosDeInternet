@@ -1,19 +1,20 @@
 import os
+from subprocess import run
+
 from typing import Tuple, Union
 import numpy as np
 from colorama import Fore, Style
 from matplotlib import pyplot as plt
 import networkx as nx
-from subprocess import run
 
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.progress import track, Progress
 from rich.panel import Panel
+from binmanipulation import getFirstSetBitPos
 
 from .route import RouteTable
-from Net.ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
-from binmanipulation import getFirstSetBitPos
+from .ip import ip_to_int, int_to_ip, get_net_ip, get_broadcast, ping
 
 # from .loaders import (
 #     read_scenario,
@@ -260,7 +261,7 @@ class Net:
 
     def get_asnums(self):
         asnums = []
-        for _, con in self.routers:
+        for _, con in self.routers.items():
             if "bgp" in con:
                 asnums += [con["bgp"]["as"]]
         return asnums
@@ -685,7 +686,8 @@ class Net:
         self.routers[router]["iface"][iface]["ip"] = ip
         if apply:
             os.system(
-                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}' -c 'ip address {ip}'"
+                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' "
+                + "-c 'interface {iface}' -c 'ip address {ip}'"
             )
         self.bridges = self.generate_bridges(self.routers)
 
@@ -700,7 +702,8 @@ class Net:
             != 2
         ):
             Console().print(
-                "Unable to set ospf on non point-to-point network, there are more than 2 routers connected to the bridge"
+                "Unable to set ospf on non p2p network, "
+                + "there are more than 2 routers connected to the bridge"
             )
             return
         self.routers[router]["iface"][iface]["ospf"] = (
@@ -714,13 +717,15 @@ class Net:
         if apply:
             if p2p == "y":
                 os.system(
-                    f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}'"
+                    f"lxc-attach -n {router} -- vtysh -c 'configure terminal' "
+                    + f"-c 'interface {iface}'"
                     + " -c 'ip ospf network point-to-point'"
                 )
             else:
                 os.system(
-                    f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'interface {iface}'"
-                    + " -c 'no ip ospf network point-to-point'"
+                    f"lxc-attach -n {router} -- vtysh -c 'configure terminal' "
+                    + f"-c 'interface {iface}' "
+                    + "-c 'no ip ospf network point-to-point'"
                 )
 
     def set_ospf(self, router, area, netip, apply=False):
@@ -797,6 +802,7 @@ class Net:
         )
         if apply:
             os.system(
-                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'router bgp {self.routers[router]['bgp']['as']}'"
+                f"lxc-attach -n {router} -- vtysh -c 'configure terminal' "
+                + "-c 'router bgp {self.routers[router]['bgp']['as']}'"
                 + f" -c 'neighbor {neigh} remote-as {remote}'"
             )

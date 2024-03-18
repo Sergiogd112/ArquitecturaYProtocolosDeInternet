@@ -3,6 +3,8 @@ from rich.prompt import Prompt
 from rich.layout import Layout
 from rich.panel import Panel
 from rich.columns import Columns
+from rich.text import Text
+from rich.table import Table
 from Net import loaders
 from .show import Show
 
@@ -141,19 +143,120 @@ class Configure:
             return
         if asnum in ["c", "create"]:
             asnum = Prompt.ask("Enter the as number:")
-        id = Prompt.ask(
+        router_id = Prompt.ask(
             "Enter the router id:",
             choices=["q", "quit"] + net.get_router_ips(router) + ["other"],
         )
-        if id == "q" or id == "quit":
+        if router_id == "q" or router_id == "quit":
             return
-        if id == "other":
-            id = Prompt.ask("Enter the router id:")
+        if router_id == "other":
+            router_id = Prompt.ask("Enter the router id:")
 
         network = Prompt.ask(
             "Enter the network ip/mask", default=net.get_net_from_bgp_as(asnum)
         )
-        net.set_bgp(router, asnum, id, network, True)
+        net.set_bgp(router, asnum, router_id, network, True)
+
+    def configure_bgp_route_map(self, net, router, neighbor):
+        self.console.print("Configure bgp route map")
+        while True:
+            Show().show_router(router, net.routers[router], True)
+            if "bgp" not in net.routers[router]:
+                self.setup_bgp(net, router)
+                continue
+            opt = Prompt.ask("Do you want:", "select", "create", "q", "quit")
+            if opt in ["q", "quit"]:
+                return
+            if opt == "create":
+                name = Prompt.ask("Enter the name")
+                net.add_bgp_route_map(router, neighbor, name, True)
+                continue
+            if opt == "select":
+                name = Prompt.ask(
+                    "Select a route map",
+                    choices=net.get_bgp_route_maps(router) + ["q", "quit"],
+                )
+                if name in ["q", "quit"]:
+                    return
+                net.add_bgp_route_map(router, name, True)
+                return
+
+    def create_bgp_route_map(self, net, router):
+        self.console.print("Create bgp route map")
+        while True:
+            Show().show_router(router, net.routers[router], True)
+            if "bgp" not in net.routers[router]:
+                self.setup_bgp(net, router)
+                continue
+            name = Prompt.ask("Enter the name")
+            in_out = Prompt.ask("Select the direction", choices=["in", "out"])
+            net.add_bgp_route_map(router, name, in_out, True)
+            opt = Prompt.ask(
+                "Do you want to add a match?", choices=["y", "yes", "n", "no"]
+            )
+            if opt in ["n", "no"]:
+                return
+            self.add_bgp_route_map_match(net, router, name)
+
+    def add_bgp_route_map_match(self, net, router, name):
+        self.console.print("Add bgp route map match")
+        while True:
+            Show().show_router(router, net.routers[router], True)
+            if "bgp" not in net.routers[router]:
+                self.setup_bgp(net, router)
+                continue
+            opt = Prompt.ask("Select an ip range to match:")
+            if opt in ["q", "quit"]:
+                return
+            self.console.print("Selected ip range: " + opt)
+            table = Table(title="Match Types")
+            table.add_column("Name")
+            table.add_column("Definition")
+            table.add_column("Range")
+            table.add_row(
+                "local-preference",
+                Text(
+                    "The local preference attribute is the second BGP attribute "
+                    + "in the BGP best path selection algorithm. "
+                    + "The local preference attribute is used to select the "
+                    + "exit point from the local AS. "
+                    + "The local preference attribute is a well-known discretionary attribute."
+                ),
+                "0-4294967295",
+            )
+            table.add_row(
+                "metric",
+                Text(
+                    "The metric attribute is the third BGP attribute in the BGP "
+                    + "best path selection algorithm. "
+                    + "The metric attribute is used to select the exit point from the local AS. "
+                    + "The metric attribute is a well-known discretionary attribute."
+                ),
+                "0-4294967295",
+            )
+            table.add_row(
+                "weight",
+                Text(
+                    "The weight attribute is the fourth BGP attribute in the BGP "
+                    + "best path selection algorithm. "
+                    + "The weight attribute is used to select the exit point from the local AS. "
+                    + "The weight attribute is a well-known discretionary attribute."
+                ),
+                "0-4294967295",
+            )
+            self.console.print(table, justify="center")
+            loc_pref = Prompt.ask("Enter the local preference:")
+            metric = Prompt.ask("Enter the metric:")
+            weight = Prompt.ask("Enter the weight:")
+            if loc_pref == "" or not loc_pref.isdigit():
+                loc_pref = None
+            if metric == "" or not metric.isdigit():
+                metric = None
+            if weight == "" or not weight.isdigit():
+                weight = None
+            net.add_bgp_route_map_match(
+                router, name, opt, loc_pref, metric, weight, True
+            )
 
     def setup_bgp_neighbor(self, net, router):
         self.console.print("Configure bgp neighbor")
@@ -203,6 +306,12 @@ class Configure:
                 )
                 if opt in ["y", "yes"]:
                     net.add_bgp_neighbor(neighbor, router, True)
+            opt = Prompt.ask(
+                "Do you want to configure a route map?",
+                choices=["y", "yes", "n", "no"],
+            )
+            if opt in ["y", "yes"]:
+                self.configure_bgp_route_map(net, router, neighbor)
 
     def configure_bgp(self, net, router):
         self.console.print("Configure bgp")
