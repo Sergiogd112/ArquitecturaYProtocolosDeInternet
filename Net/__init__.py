@@ -280,7 +280,11 @@ class Net:
 
     def get_net_from_bgp_as(self, asnum):
         for _, value in self.routers.items():
-            if "bgp" in value and value["bgp"]["as"] == asnum:
+            if (
+                "bgp" in value
+                and value["bgp"]["as"] == asnum
+                and "network" in value["bgp"]
+            ):
                 return value["bgp"]["network"]
         return None
 
@@ -679,20 +683,68 @@ class Net:
                     if not self.check_ip_used(int_to_ip(i), brg):
                         portip = int_to_ip(i) + "/" + str(self.bridges[brg]["mask"])
                         break
-                self.routers[router]["iface"][port]["ip"] = portip
-                if apply:
-                    commands.append(
-                        f"lxc-attach -n {router} -- vtysh -c 'configure terminal'"
-                        + f" -c 'interface {port}' -c 'ip address {portip}'"
-                    )
+                self.set_ip(router, port, portip, apply)
         return self.routers, commands
 
     def set_ip(self, router, iface, ip, apply=False):
         self.routers[router]["iface"][iface]["ip"] = ip
+        # check if the ip is already configured in the iface
+        consoleout = run(
+            ["lxc-attach", "-n", router, "--", "vtysh", "-c 'show run'"],
+            capture_output=True,
+            text=True,
+        ).stdout
+
+        # example of consoleout:
+        # Building configuration...
+
+        # Current configuration:
+        # !
+        # !
+        # interface eth0
+        #  ip address 20.1.0.6/30
+        # !
+        # interface eth1
+        #  ip address 10.1.0.17/30
+        # !
+        # interface lo
+        # !
+        # ip forwarding
+        # ipv6 forwarding
+        # !
+        # line vty
+        # !
+        # end
+        # extract the ip address for the interface
+
         if apply:
+            if iface in consoleout:
+                ipout = (
+                    consoleout.split(f"interface {iface}")[1]
+                    .split("ip address")[1]
+                    .split("\n")[0]
+                    .strip()
+                )
+                if ipout != ip:
+                    Console().print(f"IP {ip} already configured in {router} {iface}")
+                    run(
+                        [
+                            "lxc-attach",
+                            "-n",
+                            router,
+                            "--",
+                            "vtysh",
+                            "-c",
+                            f"'configure terminal'",
+                            "-c",
+                            f"'interface {iface}'",
+                            "-c",
+                            f"'no ip address {ipout}'",
+                        ]
+                    )
             os.system(
                 f"lxc-attach -n {router} -- vtysh -c 'configure terminal' "
-                + "-c 'interface {iface}' -c 'ip address {ip}'"
+                + f"-c 'interface {iface}' -c 'ip address {ip}'"
             )
         self.bridges = self.generate_bridges(self.routers)
 
@@ -770,7 +822,88 @@ class Net:
             "network": network,
             "neighbors": [],
         }
-        if apply:
+        if not apply:
+            return
+        # check if bgp is already configured
+        consoleout = run(
+            ["lxc-attach", "-n", router, "--", "vtysh", "-c 'show run'"],
+            capture_output=True,
+            text=True,
+        ).stdout
+        if "router bgp" in consoleout and apply:
+            data = consoleout.split("router bgp")[1].split("!\n")[0].strip()
+            pas = data.split("\n")[0].strip()
+            if pas != asnum:
+                Console().print(
+                    f"{router} already has bgp configured with as {pas} and not {asnum}"
+                )
+                Console().print("Removing bgp configuration")
+                run(
+                    [
+                        "lxc-attach",
+                        "-n",
+                        router,
+                        "--",
+                        "vtysh",
+                        "-c",
+                        f"'configure terminal'",
+                        "-c",
+                        f"'no router bgp {pas}'",
+                        "-c",
+                        f"'router bgp {asnum}'",
+                    ]
+                )
+            else:
+                prouter_id = (
+                    data.split("\n")[1].strip().split("bgp router-id ")[1].strip()
+                )
+                if prouter_id != router_id:
+                    Console().print(
+                        f"{router} already has bgp configured with router-id {prouter_id} and not {router_id}"
+                    )
+                    Console().print("Removing bgp configuration")
+                    run(
+                        [
+                            "lxc-attach",
+                            "-n",
+                            router,
+                            "--",
+                            "vtysh",
+                            "-c",
+                            f"'configure terminal'",
+                            "-c",
+                            f"'router bgp {asnum}'",
+                            "-c",
+                            f"'no bgp router-id {prouter_id}'",
+                            "-c",
+                            f"'bgp router-id {router_id}'",
+                        ]
+                    )
+                network = data.split("\n")[2].strip().split("network ")[1].strip()
+                if network != network:
+                    Console().print(
+                        f"{router} already has bgp configured with network {network} and not {network}"
+                    )
+                    Console().print("Removing bgp configuration")
+                    run(
+                        [
+                            "lxc-attach",
+                            "-n",
+                            router,
+                            "--",
+                            "vtysh",
+                            "-c",
+                            f"'configure terminal'",
+                            "-c",
+                            f"' router bgp {asnum}'",
+                            "-c",
+                            f"'no network {network}'",
+                            "-c",
+                            f"'network {network}'",
+                        ]
+                    )
+
+        else:
             os.system(
                 f"lxc-attach -n {router} -- vtysh -c 'configure terminal' -c 'router bgp {asnum}'"
                 + f" -c 'bgp router-id {router_id}' -c 'network {network}'"
@@ -788,7 +921,7 @@ class Net:
         if consoleout == "":
             return None
         if "via" in consoleout:
-            via = consoleout.split("via ")[1].split(" ")[0].stip()
+            via = consoleout.split("via ")[1].split(" ")[0].strip()
         else:
             via = None
         dev = consoleout.split("dev ")[1].split(" ")[0].strip()
@@ -831,3 +964,169 @@ class Net:
                 + f"-c 'router bgp {self.routers[router]['bgp']['as']}'"
                 + f" -c 'neighbor {neigh} remote-as {remote}'"
             )
+
+    def add_bgp_route_map(self, router, neighbor, name, in_out, apply=False):
+        if "bgp" not in self.routers[router].keys():
+            Console().print("BGP not enabled in router")
+            return
+        if "bgp" not in self.routers[neighbor].keys():
+            Console().print("BGP not enabled in neighbor")
+            return
+        if neighbor not in [
+            x["neigh"] for x in self.routers[router]["bgp"]["neighbors"]
+        ] or neighbor not in [
+            x["name"] for x in self.routers[router]["bgp"]["neighbors"]
+        ]:
+            Console().print("Neighbor not found")
+            return
+        if not apply:
+            return
+        consoleout = run(
+            ["lxc-attach", "-n", router, "--", "vtysh", "-c 'show run'"],
+            capture_output=True,
+            text=True,
+        ).stdout
+        if neighbor in self.routers.keys():
+            neighbor = self.routers[neighbor]["bgp"]["router_id"]
+        data = consoleout.split("router bgp")[1].split("!\n")[0].strip()
+        current_rmap = None
+        cname = None
+        cinout = None
+        if f"neighbor {neighbor} route-map" in data:
+            current_rmap = (
+                data.split(f"neighbor {neighbor} route-map")[1].split("\n")[0].strip()
+            )
+            cname = current_rmap.split(" ")[0]
+            cinout = current_rmap.split(" ")[1]
+        if current_rmap is not None:
+            if cname != name or cinout != in_out:
+                Console().print(
+                    f"Removing route-map {cname} {cinout} from neighbor {neighbor}"
+                )
+                run(
+                    [
+                        "lxc-attach",
+                        "-n",
+                        router,
+                        "--",
+                        "vtysh",
+                        "-c",
+                        f"'configure terminal'",
+                        "-c",
+                        f"'router bgp {self.routers[router]['bgp']['as']}'",
+                        "-c",
+                        f"'no neighbor {neighbor} route-map {cname} {cinout}'",
+                    ]
+                )
+        run(
+            [
+                "lxc-attach",
+                "-n",
+                router,
+                "--",
+                "vtysh",
+                "-c",
+                f"'configure terminal'",
+                "-c",
+                f"'router bgp {self.routers[router]['bgp']['as']}'",
+                "-c",
+                f"'neighbor {neighbor} route-map {name} {in_out}'",
+            ]
+        )
+
+    def add_access_list(self, router, name, ip, apply=False):
+        if not apply:
+            return
+        consoleout = run(
+            ["lxc-attach", "-n", router, "--", "vtysh", "-c 'show run'"],
+            capture_output=True,
+            text=True,
+        ).stdout
+        if f"access-list {name}" in consoleout:
+            Console().print(f"access-list {name} already exists in {router}")
+            return
+        run(
+            [
+                "lxc-attach",
+                "-n",
+                router,
+                "--",
+                "vtysh",
+                "-c",
+                f"'configure terminal'",
+                "-c",
+                f"'ip access-list standard {name}'",
+                "-c",
+                f"'permit {ip}'",
+            ]
+        )
+
+    def add_route_map(self, router, name, permit, match, setpval, apply=False):
+        if not apply:
+            return
+        consoleout = run(
+            ["lxc-attach", "-n", router, "--", "vtysh", "-c 'show run'"],
+            capture_output=True,
+            text=True,
+        ).stdout
+        if f"route-map {name} permit 20" not in consoleout:
+            run(
+                [
+                    "lxc-attach",
+                    "-n",
+                    router,
+                    "--",
+                    "vtysh",
+                    "-c",
+                    f"'configure terminal'",
+                    "-c",
+                    f"'route-map {name} permit {permit}'",
+                ]
+            )
+        if f"route-map {name} permit {permit}" not in consoleout:
+            run(
+                [
+                    "lxc-attach",
+                    "-n",
+                    router,
+                    "--",
+                    "vtysh",
+                    "-c",
+                    f"'configure terminal'",
+                    "-c",
+                    f"'route-map {name} permit {permit}'",
+                ]
+            )
+        rmap = (
+            consoleout.split(f"route-map {name} permit {permit}")[1]
+            .split("!\n")[0]
+            .strip()
+        )
+        if f"match ip address {match}" in rmap:
+            # check set {setpval[0]} {setpval[1]} in the match
+            setp, setval = zip(
+                **[
+                    (row.split(" ")[1], row.split(" ")[2])
+                    for row in rmap.split("match ip address")[1].strip().split("\n")[1:]
+                ]
+            )
+            if setpval[0] in setp:
+                run(
+                    [
+                        "lxc-attach",
+                        "-n",
+                        router,
+                        "--",
+                        "vtysh",
+                        "-c",
+                        f"'configure terminal'",
+                        "-c",
+                        f"'route-map {name} permit {permit}'",
+                        "-c",
+                        f"no set {setpval[0]} {setval[setp.index(setpval[0])]}",
+                        "-c",
+                        f"'set {setpval[0]} {setpval[1]}'",
+                    ]
+                )
+                return
+            

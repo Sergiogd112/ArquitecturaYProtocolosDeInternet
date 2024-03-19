@@ -263,7 +263,7 @@ def read_vtyshrc(net, contents: str) -> Tuple[int, dict]:
                         0
                     ]
                     changes += 1
-        if "router ospf" in block:
+        elif "router ospf" in block:
             if "ospf" not in res:
                 res["ospf"] = []
             for line in block.split("\n")[1:]:
@@ -273,7 +273,7 @@ def read_vtyshrc(net, contents: str) -> Tuple[int, dict]:
                 net = line.split("network ")[1].split(" ")[0]
                 res["ospf"] += [{"area": area, "network": net}]
                 changes += 1
-        if "router rip" in block:
+        elif "router rip" in block:
             if "rip" not in res:
                 res["rip"] = {}
             for line in block.split("\n")[1:]:
@@ -282,7 +282,7 @@ def read_vtyshrc(net, contents: str) -> Tuple[int, dict]:
                     res["rip"][port] = {}
                 res["rip"][port][opt] = True
                 changes += 1
-        if "router bgp" in block:
+        elif "router bgp" in block:
             if "bgp" not in res:
                 res["bgp"] = {}
             bgp_as = block.split("router bgp ")[1].split("\n")[0].strip()
@@ -297,13 +297,56 @@ def read_vtyshrc(net, contents: str) -> Tuple[int, dict]:
                     changes += 1
                 if "neighbor" in line:
                     neigh = line.strip().split("neighbor ")[1].split(" ")[0]
-                    remote = line.strip().split("remote-as ")[1].split("\n")[0]
                     if "neighbor" not in res["bgp"] or res["bgp"]["neighbor"] is None:
-                        res["bgp"]["neighbor"] = [{"neigh": neigh, "remote": remote}]
-                        changes += 1
-                        continue
-                    res["bgp"]["neighbor"] += [{"neigh": neigh, "remote": remote}]
+                        res["bgp"]["neighbor"] = {}
+                    if neigh not in res["bgp"]["neighbor"]:
+                        res["bgp"]["neighbor"][neigh] = {}
+                    if "remote-as" in line:
+                        remote = line.strip().split("remote-as ")[1].split("\n")[0]
+                        res["bgp"]["neighbor"][neigh]["remote"] = remote
+                    if "route-map" in line:
+                        print(line.strip())
+                        rmap = line.strip().split("route-map ")[1].split("\n")[0]
+                        rname = line.strip().split("route-map ")[1].split(" ")[0]
+                        inout = line.strip().split("route-map ")[1].split(" ")[1]
+                        res["bgp"]["neighbor"][neigh]["rmap"] = {
+                            "name": rname,
+                            "inout": inout,
+                        }
                     changes += 1
+        elif "access-list" in block:
+            if "acl" not in res:
+                res["acl"] = []
+            for line in block.split("\n"):
+                if "permit" in line:
+                    acl = (
+                        line.split("access-list ")[1]
+                        .split("\n")[0]
+                        .split(" ")[0]
+                        .strip()
+                    )
+                    permit = line.split("permit ")[1].split("\n")[0].strip()
+
+                    res["acl"] += [{"name": acl, "permit": permit}]
+                    changes += 1
+        elif "route-map" in block:
+            if "rmap" not in res:
+                res["rmap"] = {}
+            rname = block.split("route-map ")[1].split(" ")[0].strip()
+            permit = block.split("route-map ")[1].split(" ")[1].strip()
+            res["rmap"][rname] = {"permit": permit}
+            for line in block.split("\n")[1:]:
+                if "match" in line:
+                    if "match" not in res["rmap"][rname]:
+                        res["rmap"][rname]["match"] = {}
+                    rmap = line.split("route-map ")[1].split("\n")[0].strip()
+                    match = line.split("match ")[1].split("\n")[0].strip()
+                    res["rmap"][rname]["match"][match] = {}
+                    changes += 1
+                if "set" in line:
+                    res["rmap"][rname]["match"][match] = {
+                        line.split(" ")[1].strip(): line.split(" ")[2].strip()
+                    }
 
     return changes, res
 
@@ -368,9 +411,9 @@ def load_running_config_router(net, router):
         if "bgp" in res:
             net.routers[router]["bgp"] = res["bgp"]
             if "neighbor" in res["bgp"]:
-                for n, neigh in enumerate(res["bgp"]["neighbor"]):
-                    net.routers[router]["bgp"]["neighbor"][n]["name"] = (
-                        net.get_router_with_ip(neigh["neigh"])
+                for id, neigh in res["bgp"]["neighbor"].items():
+                    net.routers[router]["bgp"]["neighbor"][id]["name"] = (
+                        net.get_router_with_ip(id)
                     )
 
 
@@ -387,6 +430,12 @@ def load_running_config(net):
     for router, _ in net.routers.items():
         load_running_config_router(net, router)
 
+    for router,conf  in net.routers.items():
+        if "bgp" in conf and "neighbor" in conf["bgp"]:
+            for id, neigh in conf["bgp"]["neighbor"].items():
+                net.routers[router]["bgp"]["neighbor"][id]["name"] = (
+                    net.get_router_with_ip(id)
+                )
     # Console().print(self.routers)
     net.bridges = net.generate_bridges(net.routers)
 

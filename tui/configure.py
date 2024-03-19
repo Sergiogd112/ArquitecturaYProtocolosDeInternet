@@ -166,7 +166,7 @@ class Configure:
             if "bgp" not in net.routers[router]:
                 self.setup_bgp(net, router)
                 continue
-            opt = Prompt.ask("Do you want:", "select", "create", "q", "quit")
+            opt = Prompt.ask("Do you want:", choices=["select", "create", "q", "quit"])
             if opt in ["q", "quit"]:
                 return
             if opt == "create":
@@ -191,8 +191,24 @@ class Configure:
                 self.setup_bgp(net, router)
                 continue
             name = Prompt.ask("Enter the name")
-            in_out = Prompt.ask("Select the direction", choices=["in", "out"])
-            net.add_bgp_route_map(router, name, in_out, True)
+            self.console.print(net.routers[router]["bgp"]["neighbor"])
+            neighbor = Prompt.ask(
+                "Select a neighbor",
+                choices=["q", "quit"]
+                + [
+                    data["name"]
+                    for nid, data in net.routers[router]["bgp"]["neighbor"].items()
+                ]
+                + list(net.routers[router]["bgp"]["neighbor"].keys()),
+            )
+            if neighbor in ["q", "quit"]:
+                return
+            in_out = Prompt.ask(
+                "Select the direction", choices=["in", "out", "q", "quit"]
+            )
+            if in_out in ["q", "quit"]:
+                return
+            net.add_bgp_route_map(router, neighbor, name, in_out, True)
             opt = Prompt.ask(
                 "Do you want to add a match?", choices=["y", "yes", "n", "no"]
             )
@@ -324,7 +340,7 @@ class Configure:
                 continue
             opt = Prompt.ask(
                 "Select an option",
-                choices=["s", "setup", "n", "neighbor", "q", "quit"],
+                choices=["s", "setup", "n", "neighbor", "r", "route-map", "q", "quit"],
             )
             if opt in ["q", "quit"]:
                 return
@@ -332,6 +348,8 @@ class Configure:
                 self.setup_bgp(net, router)
             elif opt == "neighbor" or opt == "n":
                 self.setup_bgp_neighbor(net, router)
+            elif opt == "route-map" or opt == "r":
+                self.create_bgp_route_map(net, router)
 
     def configure_bridges(self, net):
         self.console.print("Configure bridges")

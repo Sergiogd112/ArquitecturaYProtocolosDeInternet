@@ -7,6 +7,7 @@ from rich.layout import Layout
 from rich.columns import Columns
 from rich.syntax import Syntax
 from rich.pretty import Pretty
+from rich.tree import Tree
 
 import pandas as pd
 from Net import Net
@@ -18,7 +19,7 @@ class Show:
         self.console = Console()
         self.layout = Layout()
 
-    def show_scenario(self, net):
+    def show_scenario(self, net: Net):
         while True:
             self.console.print("Show scenario")
             self.console.print("What do you want to show?")
@@ -111,16 +112,44 @@ class Show:
         # generate markdown list from a list
         # recursive function
         md = ""
-        for n,item in enumerate(data):
+        for n, item in enumerate(data):
             if isinstance(item, dict):
-                md+=f"- {n}:\n"                
+                md += f"- {n}:\n"
                 md += "  " + Show.dict_to_md(item).replace("\n", "\n  ")
             elif isinstance(item, list):
-                md+=f"- {n}:\n"
+                md += f"- {n}:\n"
                 md += "  " + Show.list_to_md(item).replace("\n", "\n  ")
             else:
                 md += f"- {n}: {item}\n"
         return md
+
+    def dict_to_tree(self, data: dict, name: str) -> Tree:
+        tree = Tree(name)
+        for key, value in data.items():
+            if value is None:
+                continue
+            if isinstance(value, dict):
+                subtree = self.dict_to_tree(value, key)
+                tree.add(subtree)
+            elif isinstance(value, list):
+                subtree = self.list_to_tree(value, key)
+                tree.add(subtree)
+            else:
+                tree.add(key + ": " + str(value))
+        return tree
+
+    def list_to_tree(self, data: list, name: str) -> Tree:
+        tree = Tree(name)
+        for n, item in enumerate(data):
+            if isinstance(item, dict):
+                subtree = self.dict_to_tree(item, str(n))
+                tree.add(subtree)
+            elif isinstance(item, list):
+                subtree = self.list_to_tree(item, str(n))
+                tree.add(subtree)
+            else:
+                tree.add(str(n) + ": " + str(item))
+        return tree
 
     def show_router(self, router: str, conf: dict, printout: bool = False) -> Panel:
         tables = []
@@ -131,7 +160,7 @@ class Show:
             # Prompt.ask("Press enter to continue")
 
             if "bgp" in sect:
-                tables += [Panel(Show.dict_to_md(block), title=sect)]
+                tables += [Panel(self.dict_to_tree(block, "bgp"), title=sect)]
                 continue
             df = pd.DataFrame(block).T
             if "ospf" in sect:
@@ -157,7 +186,7 @@ class Show:
             title="[bold magenta]" + router + "[/bold magenta]",
         )
 
-    def show_routers(self, net):
+    def show_routers(self, net: Net):
         self.console.print("Show routers")
         columns = Columns(expand=True)
         for router in sorted(list(net.routers.keys())):
@@ -166,7 +195,7 @@ class Show:
             columns.add_renderable(panel)
         self.console.print(columns)
 
-    def show_bridge(self, bridge, conf, printout=False):
+    def show_bridge(self, bridge: str, conf: dict, printout=False):
         text = ""
         for key, value in conf.items():
             if type(value) is list:
