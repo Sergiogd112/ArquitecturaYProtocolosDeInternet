@@ -294,6 +294,7 @@ class Net:
         for _, con in self.routers[router]["iface"].items():
             if len(con) > 1:
                 brg = con["brg"]
+                print(con)
                 for nrouter in self.bridges[brg]["routers"]:
                     if nrouter == router:
                         continue
@@ -820,7 +821,7 @@ class Net:
             "as": asnum,
             "id": router_id,
             "network": network,
-            "neighbors": [],
+            "neighbor": [],
         }
         if not apply:
             return
@@ -933,8 +934,8 @@ class Net:
         if "bgp" not in self.routers[router].keys():
             Console().print("BGP not enabled in router")
             return
-        if "neighbors" not in self.routers[router]["bgp"].keys():
-            self.routers[router]["bgp"]["neighbors"] = []
+        if "neighbor" not in self.routers[router]["bgp"].keys():
+            self.routers[router]["bgp"]["neighbor"] = {}
         if "bgp" not in self.routers[neighbor_name].keys():
             Console().print("BGP not enabled in neighbor")
             return
@@ -946,13 +947,12 @@ class Net:
             if nexthop is not None:
                 break
         neigh = self.routers[neighbor_name]["iface"][nexthop["dev"]]["ip"].split("/")[0]
-        self.routers[router]["bgp"]["neighbors"].append(
-            {
-                "name": neighbor_name,
-                "remote": remote,
-                "neigh": neigh,
-            }
-        )
+        self.routers[router]["bgp"]["neighbor"][neigh] = {
+            "name": neighbor_name,
+            "remote": remote,
+            "neigh": neigh,
+        }
+
         if apply:
             os.system(
                 f"lxc-attach -n {router} -- vtysh -c 'configure terminal' "
@@ -972,22 +972,23 @@ class Net:
         if "bgp" not in self.routers[neighbor].keys():
             Console().print("BGP not enabled in neighbor")
             return
-        if neighbor not in [
-            x["neigh"] for x in self.routers[router]["bgp"]["neighbors"]
-        ] or neighbor not in [
-            x["name"] for x in self.routers[router]["bgp"]["neighbors"]
-        ]:
+        ids = list(self.routers[router]["bgp"]["neighbor"].keys())
+        names = [x["name"] for _, x in self.routers[router]["bgp"]["neighbor"].items()]
+        print(ids, names)
+        if neighbor not in ids and neighbor not in names:
             Console().print("Neighbor not found")
             return
         if not apply:
             return
-        consoleout = run(
-            ["lxc-attach", "-n", router, "--", "vtysh", "-c 'show run'"],
-            capture_output=True,
-            text=True,
-        ).stdout
+        consoleout = (
+            os.popen(f"lxc-attach -n {router} -- vtysh -c 'show running'")
+            .read()
+            .split("end")[0]
+        )
         if neighbor in self.routers.keys():
-            neighbor = self.routers[neighbor]["bgp"]["router_id"]
+            print(self.routers[neighbor]["bgp"])
+            neighbor = self.routers[neighbor]["bgp"]["id"]
+        print(consoleout)
         data = consoleout.split("router bgp")[1].split("!\n")[0].strip()
         current_rmap = None
         cname = None
@@ -1045,6 +1046,7 @@ class Net:
         if f"access-list {name}" in consoleout:
             Console().print(f"access-list {name} already exists in {router}")
             return
+
         run(
             [
                 "lxc-attach",
@@ -1055,9 +1057,7 @@ class Net:
                 "-c",
                 f"'configure terminal'",
                 "-c",
-                f"'ip access-list standard {name}'",
-                "-c",
-                f"'permit {ip}'",
+                f" access-list {name} permit {ip}",
             ]
         )
 
@@ -1102,6 +1102,7 @@ class Net:
             .split("!\n")[0]
             .strip()
         )
+        print(rmap)
         if f"match ip address {match}" in rmap:
             # check set {setpval[0]} {setpval[1]} in the match
             setp, setval = zip(
@@ -1111,8 +1112,7 @@ class Net:
                 ]
             )
             if setpval[0] in setp:
-                run(
-                    [
+                cmd=[
                         "lxc-attach",
                         "-n",
                         router,
@@ -1127,6 +1127,8 @@ class Net:
                         "-c",
                         f"'set {setpval[0]} {setpval[1]}'",
                     ]
+                print(" ".join(cmd))
+                run(
+                    cmd
                 )
                 return
-            

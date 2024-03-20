@@ -190,6 +190,11 @@ class TUI:
         self.net = None
 
     def restart_scenario(self, scenario):
+        option = Prompt.ask(
+            "Restart the scenario?", choices=["y", "n"], default="n"
+        )
+        if option == "n":
+            return
         self.console.print("Restarting scenario: " + scenario)
         self.stop_scenario(scenario)
         self.start_scenario(scenario)

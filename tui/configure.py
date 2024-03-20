@@ -183,6 +183,16 @@ class Configure:
                 net.add_bgp_route_map(router, name, True)
                 return
 
+    def add_access_list(self, net, router, name):
+        self.console.print("Add access list")
+        while True:
+            Show().show_router(router, net.routers[router], True)
+            ip = Prompt.ask("Enter the ip/mask or q to quit:")
+            if ip in ["q", "quit"]:
+                return
+            name = Prompt.ask("Enter the name")
+            net.add_access_list(router, name, ip, True)
+
     def create_bgp_route_map(self, net, router):
         self.console.print("Create bgp route map")
         while True:
@@ -210,6 +220,12 @@ class Configure:
                 return
             net.add_bgp_route_map(router, neighbor, name, in_out, True)
             opt = Prompt.ask(
+                "Do you want to add an access list?", choices=["y", "yes", "n", "no"]
+            )
+            if opt in ["n", "no"]:
+                return
+            self.add_access_list(net, router, name)
+            opt = Prompt.ask(
                 "Do you want to add a match?", choices=["y", "yes", "n", "no"]
             )
             if opt in ["n", "no"]:
@@ -223,7 +239,7 @@ class Configure:
             if "bgp" not in net.routers[router]:
                 self.setup_bgp(net, router)
                 continue
-            opt = Prompt.ask("Select an ip range to match:")
+            opt = Prompt.ask("Select an ip/access_list range to match:")
             if opt in ["q", "quit"]:
                 return
             self.console.print("Selected ip range: " + opt)
@@ -264,17 +280,16 @@ class Configure:
             )
             self.console.print(table, justify="center")
             loc_pref = Prompt.ask("Enter the local preference:")
+            if loc_pref != "" and loc_pref.isdigit():
+                net.add_route_map(
+                    router, name, 10, ("local-preference", loc_pref), True
+                )
             metric = Prompt.ask("Enter the metric:")
+            if metric != "" and metric.isdigit():
+                net.add_route_map(router, name, 20, ("metric", metric), True)
             weight = Prompt.ask("Enter the weight:")
-            if loc_pref == "" or not loc_pref.isdigit():
-                loc_pref = None
-            if metric == "" or not metric.isdigit():
-                metric = None
-            if weight == "" or not weight.isdigit():
-                weight = None
-            net.add_bgp_route_map_match(
-                router, name, opt, loc_pref, metric, weight, True
-            )
+            if weight != "" and weight.isdigit():
+                net.add_route_map(router, name, 30, ("weight", weight), True)
 
     def setup_bgp_neighbor(self, net, router):
         self.console.print("Configure bgp neighbor")
