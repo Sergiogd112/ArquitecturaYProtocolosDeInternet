@@ -488,7 +488,7 @@ class Configure:
                 Show().show_bridges(net)
             elif src == "a" or src == "all":
                 loaders.load_running_config(net)
-                # Show().show_net(net)
+                Show().show_net(net)
                 Show().show_routers(net)
                 loaders.load_vtyshrt(net)
                 Show().show_routes(net)
