@@ -205,6 +205,7 @@ def read_mroute(path):
     # Merge with interface data
     merged_data = merge_data(mroute_data, interface_dict)
 
+    multicast_routes = [merged_data]
     # Print or save the result
     for ip, details in merged_data.items():
         print(f"IP: {ip}")
