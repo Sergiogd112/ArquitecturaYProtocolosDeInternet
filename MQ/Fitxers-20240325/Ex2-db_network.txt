@@ -1,0 +1,24 @@
+
+       OSPF Router with ID (10.0.1.1)
+
+
+                Net Link States (Area 0.0.0.0)
+
+  LS age: 106
+  LS Type: network-LSA
+  Link State ID: 10.0.6.3 (address of Designated Router)
+  Advertising Router: 10.0.7.3
+  LS Seq Number: 80000001
+  Network Mask: /24
+        Attached Router: 10.0.7.3
+        Attached Router: 10.0.3.5
+
+  LS age: 112
+  LS Type: network-LSA
+  Link State ID: 10.0.7.4 (address of Designated Router)
+  Advertising Router: 10.0.7.4
+  LS Seq Number: 80000001
+  Network Mask: /24
+        Attached Router: 10.0.7.3
+        Attached Router: 10.0.7.4
+

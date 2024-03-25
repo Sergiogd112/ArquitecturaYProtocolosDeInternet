@@ -1,0 +1,290 @@
+R01# mroute
+
+Virtual Interface Table
+ Vif  Local-Address    Subnet               Thresh   Flags          Neighbors
+   0  10.0.2.1         10.0.2/24            1        PIM            10.0.2.5       
+   1  10.0.4.1         10.0.4/24            1        PIM            10.0.4.2       
+   2  10.0.5.1         10.0.5/24            1        PIM            10.0.5.6       
+   3  10.0.2.1         register_vif0        1       
+
+Multicast Routing Table
+ Source          Group           RP-addr         Flags
+---------------------------(*,G)----------------------------
+ INADDR_ANY      239.1.1.1       10.0.2.1        WC RP CACHE
+Joined   oifs: .jj.               
+Pruned   oifs: ....               
+Leaves   oifs: ....               
+Asserted oifs: ....               
+Outgoing oifs: .oo.               
+Incoming     : ...I               
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3  4
+           190     40    0    0          0  0  190  185  0
+---------------------------(S,G)----------------------------
+ 10.0.16.101     239.1.1.1       10.0.2.1        RP SG
+Joined   oifs: ....               
+Pruned   oifs: .pp.               
+Leaves   oifs: ....               
+Asserted oifs: ....               
+Outgoing oifs: ....               
+Incoming     : ...I               
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3  4
+           190    40    0    0         0 0 0 0 0
+--------------------------(*,*,RP)--------------------------
+Number of Groups: 1
+Number of Cache MIRRORs: 1
+
+
+
+R02# mroute
+
+Virtual Interface Table
+ Vif  Local-Address    Subnet               Thresh   Flags          Neighbors
+   0  10.0.3.2         10.0.3/24            1        PIM            10.0.3.5       
+   1  10.0.4.2         10.0.4/24            1        DR PIM         10.0.4.1       
+   2  10.0.6.2         10.0.6/24            1        PIM            10.0.6.7       
+   3  10.0.12.2        10.0.12/24           1        PIM            10.0.12.3      
+   4  10.0.17.2        10.0.17/24           1        PIM            10.0.17.6      
+   5  10.0.18.2        10.0.18/24           1        PIM            10.0.18.8      
+   6  10.0.3.2         register_vif0        1       
+
+Multicast Routing Table
+ Source          Group           RP-addr         Flags
+---------------------------(*,G)----------------------------
+ INADDR_ANY      239.1.1.1       10.0.2.1        WC RP CACHE
+Joined   oifs: .....j.             
+Pruned   oifs: .......             
+Leaves   oifs: .......             
+Asserted oifs: .......             
+Outgoing oifs: .....o.             
+Incoming     : .I.....             
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3  4  5  6
+           185     40    0    0          0  0  0  0  0  185  0
+---------------------------(S,G)----------------------------
+ 10.0.16.101     239.1.1.1       10.0.2.1        SPT CACHE SG
+Joined   oifs: ....j..             
+Pruned   oifs: .......             
+Leaves   oifs: .......             
+Asserted oifs: .......             
+Outgoing oifs: ....oo.             
+Incoming     : I......             
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3  4  5  6
+           190    40    0    0         0 0 0 0 185 0 0
+--------------------------(*,*,RP)--------------------------
+Number of Groups: 1
+Number of Cache MIRRORs: 2
+
+
+
+R03# mroute
+
+Virtual Interface Table
+ Vif  Local-Address    Subnet               Thresh   Flags          Neighbors
+   0  10.0.12.3        10.0.12/24           1        DR PIM         10.0.12.2      
+   1  10.0.14.3        10.0.14/24           1        PIM            10.0.14.8      
+   2  10.0.15.3        10.0.15/24           1        PIM            10.0.15.4      
+   3  10.0.12.3        register_vif0        1       
+
+Multicast Routing Table
+ Source          Group           RP-addr         Flags
+--------------------------(*,*,RP)--------------------------
+Number of Groups: 0
+Number of Cache MIRRORs: 0
+
+
+
+R04# mroute
+
+Virtual Interface Table
+ Vif  Local-Address    Subnet               Thresh   Flags          Neighbors
+   0  10.0.11.4        10.0.11/24           1        PIM            10.0.11.5      
+   1  10.0.15.4        10.0.15/24           1        DR PIM         10.0.15.3      
+   2  10.0.16.4        10.0.16/24           1        DR NO-NBR      
+   3  10.0.11.4        register_vif0        1       
+
+Multicast Routing Table
+ Source          Group           RP-addr         Flags
+---------------------------(S,G)----------------------------
+ 10.0.16.102     239.1.1.1       10.0.2.1        CACHE SG
+Joined   oifs: ...j                
+Pruned   oifs: ....                
+Leaves   oifs: ....                
+Asserted oifs: ....                
+Outgoing oifs: ...o                
+Incoming     : ..I.                
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3
+           205    25    0    0         0 0 0 0
+---------------------------(S,G)----------------------------
+ 10.0.16.101     239.1.1.1       10.0.2.1        CACHE SG
+Joined   oifs: j..j                
+Pruned   oifs: ...p                
+Leaves   oifs: ....                
+Asserted oifs: ....                
+Outgoing oifs: o...                
+Incoming     : ..I.                
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3
+           205    35    15    0         165 0 0 0
+--------------------------(*,*,RP)--------------------------
+Number of Groups: 1
+Number of Cache MIRRORs: 2
+
+
+
+R05# mroute
+
+Virtual Interface Table
+ Vif  Local-Address    Subnet               Thresh   Flags          Neighbors
+   0  10.0.2.5         10.0.2/24            1        DR PIM         10.0.2.1       
+   1  10.0.3.5         10.0.3/24            1        DR PIM         10.0.3.2       
+   2  10.0.11.5        10.0.11/24           1        DR PIM         10.0.11.4      
+   3  10.0.2.5         register_vif0        1       
+
+Multicast Routing Table
+ Source          Group           RP-addr         Flags
+---------------------------(S,G)----------------------------
+ 10.0.16.101     239.1.1.1       10.0.2.1        CACHE SG
+Joined   oifs: .j..                
+Pruned   oifs: ....                
+Leaves   oifs: ....                
+Asserted oifs: ....                
+Outgoing oifs: .o..                
+Incoming     : ..I.                
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3
+           205    15    0    0         0 180 0 0
+--------------------------(*,*,RP)--------------------------
+Number of Groups: 1
+Number of Cache MIRRORs: 1
+
+
+
+R06# mroute
+
+Virtual Interface Table
+ Vif  Local-Address    Subnet               Thresh   Flags          Neighbors
+   0  10.0.5.6         10.0.5/24            1        DR PIM         10.0.5.1       
+   1  10.0.7.6         10.0.7/24            1        DR NO-NBR      
+   2  10.0.8.6         10.0.8/24            1        PIM            10.0.8.7       
+   3  10.0.9.6         10.0.9/24            1        PIM            10.0.9.9       
+   4  10.0.17.6        10.0.17/24           1        DR PIM         10.0.17.2      
+   5  10.0.5.6         register_vif0        1       
+
+Multicast Routing Table
+ Source          Group           RP-addr         Flags
+---------------------------(*,G)----------------------------
+ INADDR_ANY      239.1.1.1       10.0.2.1        WC RP CACHE
+Joined   oifs: ...j..              
+Pruned   oifs: ......              
+Leaves   oifs: .l....              
+Asserted oifs: ......              
+Outgoing oifs: .o.o..              
+Incoming     : I.....              
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3  4  5
+           180     30    0    0          0  0  0  180  0  0
+---------------------------(S,G)----------------------------
+ 10.0.16.101     239.1.1.1       10.0.2.1        SPT CACHE SG
+Joined   oifs: ...j..              
+Pruned   oifs: ......              
+Leaves   oifs: .l....              
+Asserted oifs: ......              
+Outgoing oifs: .o.o..              
+Incoming     : ....I.              
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3  4  5
+           205    30    0    0         0 0 0 150 0 0
+--------------------------(*,*,RP)--------------------------
+Number of Groups: 1
+Number of Cache MIRRORs: 2
+
+
+
+R07# mroute
+
+Virtual Interface Table
+ Vif  Local-Address    Subnet               Thresh   Flags          Neighbors
+   0  10.0.6.7         10.0.6/24            1        DR PIM         10.0.6.2       
+   1  10.0.8.7         10.0.8/24            1        DR PIM         10.0.8.6       
+   2  10.0.10.7        10.0.10/24           1        PIM            10.0.10.9      
+   3  10.0.13.7        10.0.13/24           1        PIM            10.0.13.8      
+   4  10.0.6.7         register_vif0        1       
+
+Multicast Routing Table
+ Source          Group           RP-addr         Flags
+--------------------------(*,*,RP)--------------------------
+Number of Groups: 0
+Number of Cache MIRRORs: 0
+
+
+
+R08# mroute
+
+Virtual Interface Table
+ Vif  Local-Address    Subnet               Thresh   Flags          Neighbors
+   0  10.0.13.8        10.0.13/24           1        DR PIM         10.0.13.7      
+   1  10.0.14.8        10.0.14/24           1        DR PIM         10.0.14.3      
+   2  10.0.18.8        10.0.18/24           1        DR PIM         10.0.18.2      
+   3  10.0.13.8        register_vif0        1       
+
+Multicast Routing Table
+ Source          Group           RP-addr         Flags
+---------------------------(*,G)----------------------------
+ INADDR_ANY      239.1.1.1       10.0.2.1        WC RP CACHE
+Joined   oifs: ....                
+Pruned   oifs: ....                
+Leaves   oifs: .l..                
+Asserted oifs: ....                
+Outgoing oifs: .o..                
+Incoming     : ..I.                
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3
+           0     30    0    0          0  0  0  0
+--------------------------(*,*,RP)--------------------------
+Number of Groups: 1
+Number of Cache MIRRORs: 2
+
+
+
+R09# mroute
+
+Virtual Interface Table
+ Vif  Local-Address    Subnet               Thresh   Flags          Neighbors
+   0  10.0.9.9         10.0.9/24            1        DR PIM         10.0.9.6       
+   1  10.0.10.9        10.0.10/24           1        DR PIM         10.0.10.7      
+   2  10.0.9.9         register_vif0        1       
+
+Multicast Routing Table
+ Source          Group           RP-addr         Flags
+---------------------------(*,G)----------------------------
+ INADDR_ANY      239.1.1.1       10.0.2.1        WC RP CACHE
+Joined   oifs: ...                 
+Pruned   oifs: ...                 
+Leaves   oifs: .l.                 
+Asserted oifs: ...                 
+Outgoing oifs: .o.                 
+Incoming     : I..                 
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2
+           0     30    0    0          0  0  0
+---------------------------(S,G)----------------------------
+ 10.0.16.101     239.1.1.1       10.0.2.1        CACHE SG
+Joined   oifs: ...                 
+Pruned   oifs: ...                 
+Leaves   oifs: .l.                 
+Asserted oifs: ...                 
+Outgoing oifs: .o.                 
+Incoming     : I..                 
+
+TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2
+           205    5    0    0         0 0 0
+--------------------------(*,*,RP)--------------------------
+Number of Groups: 1
+Number of Cache MIRRORs: 2
+
+
+

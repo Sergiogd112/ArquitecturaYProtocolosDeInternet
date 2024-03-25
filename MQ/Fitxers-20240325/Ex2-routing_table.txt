@@ -1,0 +1,12 @@
+Codes: K - kernel route, C - connected, S - static, R - RIP,
+       O - OSPF, I - IS-IS, B - BGP, P - PIM, A - Babel, N - NHRP,
+       > - selected route, * - FIB route
+
+C>* 10.0.1.0/24 is directly connected, eth0
+O>* 10.0.2.0/24 [110/20] via 10.0.1.2, eth0, 00:10:21
+O>* 10.0.3.0/24 [110/20] via 10.0.1.2, eth0, 00:10:06
+  *                      via 10.0.6.5, eth1, 00:10:06
+O>* 10.0.5.0/24 [110/30] via 10.0.6.5, eth1, 00:10:06
+C>* 10.0.6.0/24 is directly connected, eth1
+C>* 10.0.7.0/24 is directly connected, eth2
+
