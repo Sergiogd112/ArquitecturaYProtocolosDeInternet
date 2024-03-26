@@ -4,7 +4,21 @@ import os
 from rich.tree import Tree
 from rich.console import Console
 from rich.prompt import Prompt, IntPrompt
+from rich.panel import Panel
+from rich.columns import Columns
 from Net.ip import *
+
+
+class Node:
+    def __init__(self, name: str, next=[]):
+        self.name = name
+        self.next = next
+
+    def to_tree(self):
+        tree = Tree(self.name)
+        for n in self.next:
+            tree.add(n.to_tree())
+        return tree
 
 
 def net_from_console():
@@ -55,19 +69,50 @@ def net_from_console():
     return routers
 
 
+def pc_from_console(routers, nets):
+    npc = IntPrompt.ask("Enter number of PCs", default=1)
+    ippref = Prompt.ask("Enter IP prefix", default="10.0.")
+    submask = IntPrompt.ask("Enter subnet mask", default=24)
+
+    for i in range(npc):
+        if i < 10:
+            pc = Prompt.ask(f"Enter PC name {i+1}", default=f"PC0{i+1}")
+        else:
+            pc = Prompt.ask(f"Enter PC name {i+1}", default=f"PC{i+1}")
+        routers[pc] = {}
+        routers[pc]["eth0"] = {}
+        ip = ippref + Prompt.ask(
+            f"Enter IP address for {pc}", default=f"10.0.{i+1}.101"
+        )
+        routers[pc]["eth0"]["ip"] = ip
+        routers[pc]["eth0"]["netip"] = get_net_ip(ip, submask)
+        neigh = Prompt.ask(
+            f"Enter neighbors for {pc}",
+            default=" ".join(
+                nets[get_net_ip(ip, submask) + "/" + str(submask)]["members"]
+            ),
+        ).split()
+        nets[get_net_ip(ip, submask) + "/" + str(submask)]["members"].append(pc)
+        routers[pc]["eth0"]["neigh"] = neigh
+        Console().print(routers[pc])
+        Console().print(dict_to_tree(routers[pc], pc))
+    return routers, nets
+
+
 def dict_to_tree(data: dict, name: str) -> Tree:
     tree = Tree(name)
     for key, value in data.items():
         if value is None:
             continue
         if isinstance(value, dict):
-            subtree = dict_to_tree(value, key)
+            subtree = dict_to_tree(value, str(key))
             tree.add(subtree)
         elif isinstance(value, list) or isinstance(value, tuple):
-            subtree = list_to_tree(value, key)
+            subtree = list_to_tree(value, str(key))
             tree.add(subtree)
         else:
-            tree.add(key + ": " + str(value))
+            tree.add(str(key) + ": " + str(value))
+    # Console().print(tree)
     return tree
 
 
@@ -85,222 +130,525 @@ def list_to_tree(data: list, name: str) -> Tree:
     return tree
 
 
-def read_mroute(path):
-    # example of mroute file:
-    # Virtual Interface Table
-    #  Vif  Local-Address    Subnet               Thresh   Flags          Neighbors
-    #    0  10.0.3.2         10.0.3/24            1        PIM            10.0.3.5
-    #    1  10.0.4.2         10.0.4/24            1        DR PIM         10.0.4.1
-    #    2  10.0.6.2         10.0.6/24            1        PIM            10.0.6.7
-    #    3  10.0.12.2        10.0.12/24           1        PIM            10.0.12.3
-    #    4  10.0.17.2        10.0.17/24           1        PIM            10.0.17.6
-    #    5  10.0.18.2        10.0.18/24           1        PIM            10.0.18.8
-    #    6  10.0.3.2         register_vif0        1
-
-    # Multicast Routing Table
-    #  Source          Group           RP-addr         Flags
-    # ---------------------------(*,G)----------------------------
-    #  INADDR_ANY      239.1.1.1       10.0.2.1        WC RP CACHE
-    # Joined   oifs: .....j.
-    # Pruned   oifs: .......
-    # Leaves   oifs: .......
-    # Asserted oifs: .......
-    # Outgoing oifs: .....o.
-    # Incoming     : .I.....
-
-    # TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3  4  5  6
-    #            185     40    0    0          0  0  0  0  0  185  0
-    # ---------------------------(S,G)----------------------------
-    #  10.0.16.101     239.1.1.1       10.0.2.1        SPT CACHE SG
-    # Joined   oifs: ....j..
-    # Pruned   oifs: .......
-    # Leaves   oifs: .......
-    # Asserted oifs: .......
-    # Outgoing oifs: ....oo.
-    # Incoming     : I......
-
-    # TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3  4  5  6
-    #            190    40    0    0         0 0 0 0 185 0 0
-    # --------------------------(*,*,RP)--------------------------
-    # Number of Groups: 1
-    # Number of Cache MIRRORs: 2
+def read_mroute(data, nets, name):
 
     # Given multicast routing table
-    multicast_routing_table = """
-    Source          Group           RP-addr         Flags
-    ---------------------------(*,G)----------------------------
-    INADDR_ANY      239.1.1.1       10.0.2.1        WC RP CACHE
-    Joined   oifs: .....j.             
-    Pruned   oifs: .......             
-    Leaves   oifs: .......             
-    Asserted oifs: .......             
-    Outgoing oifs: .....o.             
-    Incoming     : .I.....             
-
-    TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3  4  5  6
-            185     40    0    0          0  0  0  0  0  185  0
-    ---------------------------(S,G)----------------------------
-    10.0.16.101     239.1.1.1       10.0.2.1        SPT CACHE SG
-    Joined   oifs: ....j..             
-    Pruned   oifs: .......             
-    Leaves   oifs: .......             
-    Asserted oifs: .......             
-    Outgoing oifs: ....oo.             
-    Incoming     : I......             
-
-    TIMERS:  Entry   JP   RS Assert VIFS:  0  1  2  3  4  5  6
-            190    40    0    0         0 0 0 0 185 0 0
-    --------------------------(*,*,RP)--------------------------
-    Number of Groups: 1
-    Number of Cache MIRRORs: 2
-    """
+    interface_dict = {}
+    data = data.strip()
 
     # Given dictionary of interfaces
-    interface_dict = {
-        "eth0": {"ip": "10.0.3.2", "neigh": ["R05"]},
-        "eth1": {"ip": "10.0.12.2", "neigh": ["R03"]},
-        "eth2": {"ip": "10.0.18.2", "neigh": ["R08"]},
-        "eth3": {"ip": "10.0.6.2", "neigh": ["R07"]},
-        "eth4": {"ip": "10.0.17.2", "neigh": ["R06"]},
-        "eth5": {"ip": "10.0.4.2", "neigh": ["R01"]},
-    }
+    blocks = data.split("\n\n")
+    # generate an array mapping idx to interface using the first block
+    vif_map = []
+    # print(blocks[0])
+    index = blocks[0].split("\n")[2:]
+    lindex = len(index)
+    for n, line in enumerate(index):
+        row = line.strip().split()
+        # idx = int(row[0])
+        ifaceip = row[1]
+        netip = row[2]
+        if len(netip.split(".")) < 4:
+            netip = netip.replace("/", ".0/")
+        if n < lindex - 1:
+            interface_dict["eth" + str(n)] = {
+                "ip": ifaceip,
+                "pim": {},
+                "neigh": [],
+                "netip": netip,
+            }
+            if netip not in nets:
+                nets[netip] = {"members": []}
+            nets[netip]["members"].append(name)
+            vif_map.append("eth" + str(n))
+        else:
+            interface_dict["virt"] = {"ip": ifaceip, "pim": {}}
+            vif_map.append("virt")
+    sources = set()
+    for block in blocks[1:]:
+        # print(block)
+        if "oifs" not in block:
+            continue
+        gtype = block.split("\n")[2].replace("-", "").strip()
+        # print(name)
+        ipsource = block.split("\n")[3].strip().split()[0].strip()
+        source = (ipsource, block.split("\n")[3].strip().split()[1].strip())
+        sources.add(source)
+        for param in block.split("\n")[4:]:
+            # print(param)
+            row = param.split()[2].strip()
+            # print(row)
+            for n, char in enumerate(row):
+                if char != ".":
+                    # print(vif_map[n])
+                    # print(interface_dict[vif_map[n]]["pim"])
+                    if source not in interface_dict[vif_map[n]]["pim"]:
+                        interface_dict[vif_map[n]]["pim"][source] = ""
+                    interface_dict[vif_map[n]]["pim"][source] += char
+                    if char == "I" and n < len(vif_map) - 1:
+                        if source not in nets[interface_dict[vif_map[n]]["netip"]]:
+                            nets[interface_dict[vif_map[n]]["netip"]][source] = {
+                                "in": False
+                            }
+                        nets[interface_dict[vif_map[n]]["netip"]][source]["in"] = True
+                    if char == "o" and n < len(vif_map) - 1:
+                        if source not in nets[interface_dict[vif_map[n]]["netip"]]:
+                            nets[interface_dict[vif_map[n]]["netip"]][source] = {
+                                "out": False
+                            }
+                        nets[interface_dict[vif_map[n]]["netip"]][source]["out"] = True
+                    # print(interface_dict[vif_map[n]]["pim"])
+    Console().print(dict_to_tree(interface_dict, "Interfaces"))
+    # print(sources)
+    return interface_dict, sources, nets
 
-        # Function to parse (*,G) and (S,G) sub-tables
-    def parse_sub_table(sub_table):
-        lines = sub_table.strip().split('\n')
-        data = {}
-        data['type'] = lines[0].strip()
-        data['parameters'] = {}
-        for line in lines[1:]:
-            if line.strip() == "":
-                continue
-            elif 'TIMERS:' in line:
-                data['timers'] = line.strip().split()[2:]
+
+def read_mroutes(path):
+    with open(path, "r") as f:
+        data = f.read().strip()
+    blocks = data.split("\n\n\n\n")
+    sources = set()
+    nets = {}
+    routers = {}
+    for block in blocks:
+        rname = block.split("\n")[0].strip().split("#")[0]
+
+        print("Router", rname)
+        if rname not in routers:
+            routers[rname] = {}
+        routers[rname], tsources, nets = read_mroute(
+            "\n".join(block.split("\n")[1:]) + "\n", nets, rname
+        )
+        sources.update(tsources)
+    # print(sources)
+    return routers, list(sources), nets
+
+
+def print_routers(routers):
+    columns = Columns()
+    for router in routers:
+        columns.add_renderable(
+            Panel(
+                dict_to_tree(routers[router], router), border_style="blue", title=router
+            )
+        )
+    Console().print(columns)
+
+
+def traverse_tree(routers, nets, source, current,depth=0):
+    if depth > 10:
+        print("Depth limit reached")
+        return Node(current)
+    if "PC" in current:
+        if (
+            nets[routers[current]["eth0"]["netip"]][source]["out"]
+            and source[0] != routers[current]["eth0"]["ip"]
+        ):
+            return Node(current)
+        if (
+            nets[routers[current]["eth0"]["netip"]][source]["in"]
+            and source[0] == routers[current]["eth0"]["ip"]
+        ):
+            next = []
+            for neigh in routers[current]["eth0"]["neigh"]:
+                if "R" in neigh:
+                    for iface, info in routers[neigh].items():
+                        if current in info["neigh"] and "I" in info["pim"][source]:
+                            next.append(traverse_tree(routers, nets, source, neigh,depth+1))
+                            break
+                elif (
+                    "PC" in neigh
+                    and nets[routers[neigh]["eth0"]["netip"]][source]["out"]
+                ):
+                    next.append(traverse_tree(routers, nets, source, neigh,depth+1))
+            return Node(current, next)
+    else:
+        next = []
+        for iface, info in routers[current].items():
+            if "virt" in iface:
+                if "I" in info["pim"][source]:
+                    continue
+                if "o" in info["pim"][source]:
+                    next.append(Node("RP"))
             else:
-                key, value = line.strip().split(':')
-                data['parameters'][key.strip()] = value.strip()
-        return data
-
-    # Function to merge multicast routing data with interface data
-    def merge_data(mroute_data, interface_data):
-        for interface, details in interface_data.items():
-            if 'ip' in details and 'neigh' in details:
-                ip = details['ip']
-                if ip in mroute_data:
-                    mroute_data[ip]['interface'] = interface
-                    mroute_data[ip]['neighbors'] = details['neigh']
-        return mroute_data
-
-    # Parse multicast routing table
-    mroute_data = {}
-    sub_tables = multicast_routing_table.split('--------------------------')
-
-    # Parse (*,G) sub-table
-    _g_sub_table = sub_tables[0]
-    sg_sub_table = sub_tables[1]
-    _rp_sub_table = sub_tables[2:]
-    mroute_data.update(parse_sub_table(_g_sub_table))
-    mroute_data.update(parse_sub_table(sg_sub_table))
-
-    # Merge with interface data
-    merged_data = merge_data(mroute_data, interface_dict)
-
-    multicast_routes = [merged_data]
-    # Print or save the result
-    for ip, details in merged_data.items():
-        print(f"IP: {ip}")
-        print(f"Interface: {details['interface']}")
-        print(f"Neighbors: {', '.join(details['neighbors'])}")
-        print(f"Joined: {details['parameters'].get('Joined', 'N/A')}")
-        print(f"Pruned: {details['parameters'].get('Pruned', 'N/A')}")
-        print(f"Leaves: {details['parameters'].get('Leaves', 'N/A')}")
-        print(f"Asserted: {details['parameters'].get('Asserted', 'N/A')}")
-        print(f"Outgoing: {details['parameters'].get('Outgoing', 'N/A')}")
-        print(f"Incoming: {details['parameters'].get('Incoming', 'N/A')}")
-        print("\n")
+                if "I" in info["pim"][source]:
+                    continue
+                if "o" in info["pim"][source]:
+                    for neigh in routers[current]["eth0"]["neigh"]:
+                        if "R" in neigh:
+                            for iface, info in routers[neigh].items():
+                                if (
+                                    current in info["neigh"]
+                                    and "I" in info["pim"][source]
+                                ):
+                                    next.append(
+                                        traverse_tree(routers, nets, source, neigh,depth+1)
+                                    )
+                                    break
+                        elif (
+                            "PC" in neigh
+                            and nets[routers[neigh]["eth0"]["netip"]][source]["out"]
+                        ):
+                            next.append(traverse_tree(routers, nets, source, neigh,depth+1))
+        return Node(current, next)
 
 
-    # Printing parameters for each interface
-    for route in multicast_routes:
-        print(f"Type: {route['type']}")
-        print(f"Source: {route['source']}")
-        print(f"Group: {route['group']}")
-        print(f"RP Address: {route['rp_addr']}")
-        print(f"Flags: {route['flags']}")
-        print("Parameters for each interface:")
-        for key, value in interface_dict.items():
-            print(f"Interface: {key}")
-            if route.get(key.lower()):
-                print(f"Joined: {route[key.lower()]}")
-            else:
-                print("Not joined")
-        print("\n")
+def generate_tree(routers, sources,nets):
+    # Find the shared trees and the source trees
+    # print_routers(routers)
+    sips = [x[0] for x in sources]
+    pcsources = []
+    for dev, conf in routers.items():
+        if "PC" not in dev:
+            continue
+        print(dev)
+        for iface, info in conf.items():
+            if info["ip"] in sips:
+                for n, sip in enumerate(sips):
+                    if sip == info["ip"]:
+                        source= sources[n]
+                        break
+                print(iface, info)
+                pcsources.append((dev, iface, source))
+                break
+    trees=[]
+    for source in pcsources:
+        print(source)
+        tree=traverse_tree(routers, nets, source[2], source[0],)
+        trees.append(tree)
+        Console().print(tree.to_tree())
+
+    return pcsources,trees
 
 
 def test():
     routers = {
-        "R1": {
-            "eth0": {"ip": "10.0.2.1", "neigh": ["R05"]},
-            "eth1": {"ip": "10.0.4.1", "neigh": ["R02"]},
-            "eth2": {"ip": "10.0.5.1", "neigh": ["R06"]},
+        "R01": {
+            "eth0": {"ip": "10.0.2.1", "pim": {}, "neigh": [], "netip": "10.0.2.0/24"},
+            "eth1": {
+                "ip": "10.0.4.1",
+                "pim": {
+                    ("INADDR_ANY", "239.1.1.1"): "jo",
+                    ("10.0.16.101", "239.1.1.1"): "p",
+                },
+                "neigh": [],
+                "netip": "10.0.4.0/24",
+            },
+            "eth2": {
+                "ip": "10.0.5.1",
+                "pim": {
+                    ("INADDR_ANY", "239.1.1.1"): "jo",
+                    ("10.0.16.101", "239.1.1.1"): "p",
+                },
+                "neigh": [],
+                "netip": "10.0.5.0/24",
+            },
+            "virt": {
+                "ip": "10.0.2.1",
+                "pim": {
+                    ("INADDR_ANY", "239.1.1.1"): "I",
+                    ("10.0.16.101", "239.1.1.1"): "I",
+                },
+            },
         },
-        "R2": {
-            "eth0": {"ip": "10.0.3.2", "neigh": ["R05"]},
-            "eth1": {"ip": "10.0.12.2", "neigh": ["R03"]},
-            "eth2": {"ip": "10.0.18.2", "neigh": ["R08"]},
-            "eth3": {"ip": "10.0.6.2", "neigh": ["R07"]},
-            "eth4": {"ip": "10.0.17.2", "neigh": ["R06"]},
-            "eth5": {"ip": "10.0.4.2", "neigh": ["R01"]},
+        "R02": {
+            "eth0": {
+                "ip": "10.0.3.2",
+                "pim": {("10.0.16.101", "239.1.1.1"): "I"},
+                "neigh": [],
+                "netip": "10.0.3.0/24",
+            },
+            "eth1": {
+                "ip": "10.0.4.2",
+                "pim": {("INADDR_ANY", "239.1.1.1"): "I"},
+                "neigh": [],
+                "netip": "10.0.4.0/24",
+            },
+            "eth2": {"ip": "10.0.6.2", "pim": {}, "neigh": [], "netip": "10.0.6.0/24"},
+            "eth3": {
+                "ip": "10.0.12.2",
+                "pim": {},
+                "neigh": [],
+                "netip": "10.0.12.0/24",
+            },
+            "eth4": {
+                "ip": "10.0.17.2",
+                "pim": {("10.0.16.101", "239.1.1.1"): "jo"},
+                "neigh": [],
+                "netip": "10.0.17.0/24",
+            },
+            "eth5": {
+                "ip": "10.0.18.2",
+                "pim": {
+                    ("INADDR_ANY", "239.1.1.1"): "jo",
+                    ("10.0.16.101", "239.1.1.1"): "o",
+                },
+                "neigh": [],
+                "netip": "10.0.18.0/24",
+            },
+            "virt": {"ip": "10.0.3.2", "pim": {}},
         },
-        "R3": {
-            "eth0": {"ip": "10.0.15.3", "neigh": ["R04"]},
-            "eth1": {"ip": "10.0.14.3", "neigh": ["R08,PC05"]},
-            "eth2": {"ip": "10.0.12.3", "neigh": ["R02"]},
+        "R03": {
+            "eth0": {
+                "ip": "10.0.12.3",
+                "pim": {},
+                "neigh": [],
+                "netip": "10.0.12.0/24",
+            },
+            "eth1": {
+                "ip": "10.0.14.3",
+                "pim": {},
+                "neigh": [],
+                "netip": "10.0.14.0/24",
+            },
+            "eth2": {
+                "ip": "10.0.15.3",
+                "pim": {},
+                "neigh": [],
+                "netip": "10.0.15.0/24",
+            },
+            "virt": {"ip": "10.0.12.3", "pim": {}},
         },
-        "R4": {
-            "eth0": {"ip": "10.0.16.4", "neigh": ["PC01,PC02"]},
-            "eth1": {"ip": "10.0.15.4", "neigh": ["R03"]},
-            "eth2": {"ip": "10.0.11.4", "neigh": ["R05"]},
+        "R04": {
+            "eth0": {
+                "ip": "10.0.11.4",
+                "pim": {("10.0.16.101", "239.1.1.1"): "jo"},
+                "neigh": [],
+                "netip": "10.0.11.0/24",
+            },
+            "eth1": {
+                "ip": "10.0.15.4",
+                "pim": {},
+                "neigh": [],
+                "netip": "10.0.15.0/24",
+            },
+            "eth2": {
+                "ip": "10.0.16.4",
+                "pim": {
+                    ("10.0.16.102", "239.1.1.1"): "I",
+                    ("10.0.16.101", "239.1.1.1"): "I",
+                },
+                "neigh": [],
+                "netip": "10.0.16.0/24",
+            },
+            "virt": {
+                "ip": "10.0.11.4",
+                "pim": {
+                    ("10.0.16.102", "239.1.1.1"): "jo",
+                    ("10.0.16.101", "239.1.1.1"): "jp",
+                },
+            },
         },
-        "R5": {
-            "eth0": {"ip": "10.0.11.5", "neigh": ["R04"]},
-            "eth1": {"ip": "10.0.3.5", "neigh": ["R02"]},
-            "eth2": {"ip": "10.0.2.5", "neigh": ["R01"]},
+        "R05": {
+            "eth0": {"ip": "10.0.2.5", "pim": {}, "neigh": [], "netip": "10.0.2.0/24"},
+            "eth1": {
+                "ip": "10.0.3.5",
+                "pim": {("10.0.16.101", "239.1.1.1"): "jo"},
+                "neigh": [],
+                "netip": "10.0.3.0/24",
+            },
+            "eth2": {
+                "ip": "10.0.11.5",
+                "pim": {("10.0.16.101", "239.1.1.1"): "I"},
+                "neigh": [],
+                "netip": "10.0.11.0/24",
+            },
+            "virt": {"ip": "10.0.2.5", "pim": {}},
         },
-        "R6": {
-            "eth0": {"ip": "10.0.5.6", "neigh": ["R01"]},
-            "eth1": {"ip": "10.0.17.6", "neigh": ["R02"]},
-            "eth2": {"ip": "10.0.8.6", "neigh": ["R07"]},
-            "eth3": {"ip": "10.0.9.6", "neigh": ["R09"]},
-            "eth4": {"ip": "10.0.7.6", "neigh": ["PC03"]},
+        "R06": {
+            "eth0": {
+                "ip": "10.0.5.6",
+                "pim": {("INADDR_ANY", "239.1.1.1"): "I"},
+                "neigh": [],
+                "netip": "10.0.5.0/24",
+            },
+            "eth1": {
+                "ip": "10.0.7.6",
+                "pim": {
+                    ("INADDR_ANY", "239.1.1.1"): "lo",
+                    ("10.0.16.101", "239.1.1.1"): "lo",
+                },
+                "neigh": [],
+                "netip": "10.0.7.0/24",
+            },
+            "eth2": {"ip": "10.0.8.6", "pim": {}, "neigh": [], "netip": "10.0.8.0/24"},
+            "eth3": {
+                "ip": "10.0.9.6",
+                "pim": {
+                    ("INADDR_ANY", "239.1.1.1"): "jo",
+                    ("10.0.16.101", "239.1.1.1"): "jo",
+                },
+                "neigh": [],
+                "netip": "10.0.9.0/24",
+            },
+            "eth4": {
+                "ip": "10.0.17.6",
+                "pim": {("10.0.16.101", "239.1.1.1"): "I"},
+                "neigh": [],
+                "netip": "10.0.17.0/24",
+            },
+            "virt": {"ip": "10.0.5.6", "pim": {}},
         },
-        "R7": {
-            "eth0": {"ip": "10.0.6.7", "neigh": ["R02"]},
-            "eth1": {"ip": "10.0.13.7", "neigh": ["R08"]},
-            "eth2": {"ip": "10.0.10.7", "neigh": ["R09", "PC04"]},
-            "eth3": {"ip": "10.0.8.7", "neigh": ["R06"]},
+        "R07": {
+            "eth0": {"ip": "10.0.6.7", "pim": {}, "neigh": [], "netip": "10.0.6.0/24"},
+            "eth1": {"ip": "10.0.8.7", "pim": {}, "neigh": [], "netip": "10.0.8.0/24"},
+            "eth2": {
+                "ip": "10.0.10.7",
+                "pim": {},
+                "neigh": [],
+                "netip": "10.0.10.0/24",
+            },
+            "eth3": {
+                "ip": "10.0.13.7",
+                "pim": {},
+                "neigh": [],
+                "netip": "10.0.13.0/24",
+            },
+            "virt": {"ip": "10.0.6.7", "pim": {}},
         },
-        "R8": {
-            "eth0": {"ip": "10.0.14.8", "neigh": ["R03", "PC05"]},
-            "eth1": {"ip": "10.0.13.8", "neigh": ["R07"]},
-            "eth2": {"ip": "10.0.18.8", "neigh": ["R02"]},
+        "R08": {
+            "eth0": {
+                "ip": "10.0.13.8",
+                "pim": {},
+                "neigh": [],
+                "netip": "10.0.13.0/24",
+            },
+            "eth1": {
+                "ip": "10.0.14.8",
+                "pim": {("INADDR_ANY", "239.1.1.1"): "lo"},
+                "neigh": [],
+                "netip": "10.0.14.0/24",
+            },
+            "eth2": {
+                "ip": "10.0.18.8",
+                "pim": {("INADDR_ANY", "239.1.1.1"): "I"},
+                "neigh": [],
+                "netip": "10.0.18.0/24",
+            },
+            "virt": {"ip": "10.0.13.8", "pim": {}},
         },
-        "R9": {
-            "eth0": {"ip": "10.0.9.9", "neigh": ["R06"]},
-            "eth1": {"ip": "10.0.10.9", "neigh": ["R07", "PC04"]},
+        "R09": {
+            "eth0": {
+                "ip": "10.0.9.9",
+                "pim": {
+                    ("INADDR_ANY", "239.1.1.1"): "I",
+                    ("10.0.16.101", "239.1.1.1"): "I",
+                },
+                "neigh": [],
+                "netip": "10.0.9.0/24",
+            },
+            "eth1": {
+                "ip": "10.0.10.9",
+                "pim": {
+                    ("INADDR_ANY", "239.1.1.1"): "lo",
+                    ("10.0.16.101", "239.1.1.1"): "lo",
+                },
+                "neigh": [],
+                "netip": "10.0.10.0/24",
+            },
+            "virt": {"ip": "10.0.9.9", "pim": {}},
         },
-        "PC1": {"eth0": {"ip": "10.0.16.101", "neigh": ["R04", "PC02"]}},
-        "PC2": {"eth0": {"ip": "10.0.16.102", "neigh": ["R04", "PC01"]}},
-        "PC3": {"eth0": {"ip": "10.0.7.103", "neigh": ["R06"]}},
-        "PC4": {"eth0": {"ip": "10.0.10.104", "neigh": ["R09", "R07"]}},
+        "PC01": {
+            "eth0": {
+                "ip": "10.0.16.101",
+                "netip": "10.0.16.0/24",
+                "neigh": ["R04", "PC02"],
+            }
+        },
+        "PC02": {
+            "eth0": {
+                "ip": "10.0.16.102",
+                "netip": "10.0.16.0/24",
+                "neigh": ["R04", "PC01"],
+            }
+        },
+        "PC03": {"eth0": {"ip": "10.0.7.103", "netip": "10.0.7.0/24", "neigh": ["R06"]}},
+        "PC04": {
+            "eth0": {"ip": "10.0.10.104", "netip": "10.0.10.0/24", "neigh": ["R07", "R09"]}
+        },
+        "PC05": {
+            "eth0": {"ip": "10.0.14.105", "netip": "10.0.14.0/24", "neigh": ["R03", "R08"]}
+        },
     }
+    nets = {
+        "10.0.2.0/24": {"members": ["R01", "R05"]},
+        "10.0.4.0/24": {
+            "members": ["R01", "R02"],
+            ("INADDR_ANY", "239.1.1.1"): {"out": True, "in": True},
+        },
+        "10.0.5.0/24": {
+            "members": ["R01", "R06"],
+            ("INADDR_ANY", "239.1.1.1"): {"out": True, "in": True},
+        },
+        "10.0.3.0/24": {
+            "members": ["R02", "R05"],
+            ("10.0.16.101", "239.1.1.1"): {"in": True, "out": True},
+        },
+        "10.0.6.0/24": {"members": ["R02", "R07"]},
+        "10.0.12.0/24": {"members": ["R02", "R03"]},
+        "10.0.17.0/24": {
+            "members": ["R02", "R06"],
+            ("10.0.16.101", "239.1.1.1"): {"out": True, "in": True},
+        },
+        "10.0.18.0/24": {
+            "members": ["R02", "R08"],
+            ("INADDR_ANY", "239.1.1.1"): {"out": True, "in": True},
+            ("10.0.16.101", "239.1.1.1"): {"out": True},
+        },
+        "10.0.14.0/24": {
+            "members": ["R03", "R08", "PC05"],
+            ("INADDR_ANY", "239.1.1.1"): {"out": True},
+        },
+        "10.0.15.0/24": {"members": ["R03", "R04"]},
+        "10.0.11.0/24": {
+            "members": ["R04", "R05"],
+            ("10.0.16.101", "239.1.1.1"): {"out": True, "in": True},
+        },
+        "10.0.16.0/24": {
+            "members": ["R04", "PC01", "PC02"],
+            ("10.0.16.102", "239.1.1.1"): {"in": True},
+            ("10.0.16.101", "239.1.1.1"): {"in": True},
+        },
+        "10.0.7.0/24": {
+            "members": ["R06", "PC03"],
+            ("INADDR_ANY", "239.1.1.1"): {"out": True},
+            ("10.0.16.101", "239.1.1.1"): {"out": True},
+        },
+        "10.0.8.0/24": {"members": ["R06", "R07"]},
+        "10.0.9.0/24": {
+            "members": ["R06", "R09"],
+            ("INADDR_ANY", "239.1.1.1"): {"out": True, "in": True},
+            ("10.0.16.101", "239.1.1.1"): {"out": True, "in": True},
+        },
+        "10.0.10.0/24": {
+            "members": ["R07", "R09", "PC04"],
+            ("INADDR_ANY", "239.1.1.1"): {"out": True},
+            ("10.0.16.101", "239.1.1.1"): {"out": True},
+        },
+        "10.0.13.0/24": {"members": ["R07", "R08"]},
+    }
+    sources = [
+        ("10.0.16.102", "239.1.1.1"),
+        ("10.0.16.101", "239.1.1.1"),
+        ("INADDR_ANY", "239.1.1.1"),
+    ]
     console = Console()
 
-    console.print(dict_to_tree(routers, "Network"), style="bold magenta")
-    net2 = net_from_console()
-    console.print(dict_to_tree(net2, "Network"), style="bold magenta")
-    console.print(net2)
+    # console.print(dict_to_tree(routers, "Network"), style="bold magenta")
+    # net2 = net_from_console()
+    # console.print(dict_to_tree(net2, "Network"), style="bold magenta")
+    # console.print(net2)
+    # routers, sources, nets = read_mroutes(
+    #     os.path.join("MQ", "Fitxers-20240325", "Ex4-mroute.txt")
+    # )
+    # print_routers(routers)
+    print(sources)
+    Console().print(nets)
+    # routers, nets = pc_from_console(routers, nets)
+    # Console().print(nets)
+    # Console().print(routers)
+    print_routers(routers)
+    print(generate_tree(routers, sources,nets))
 
 
-# test()
-read_mroute("mroute.txt")
+test()
