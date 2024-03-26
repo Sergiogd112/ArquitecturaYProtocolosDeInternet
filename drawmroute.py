@@ -19,7 +19,8 @@ class Node:
         for n in self.next:
             tree.add(n.to_tree())
         return tree
-
+    def __repr__(self):
+        return self.name+"->"+str("\n ".join([str(x) for x in self.next]))
 
 def net_from_console():
     routers = {}
@@ -85,13 +86,20 @@ def pc_from_console(routers, nets):
             f"Enter IP address for {pc}", default=f"10.0.{i+1}.101"
         )
         routers[pc]["eth0"]["ip"] = ip
-        routers[pc]["eth0"]["netip"] = get_net_ip(ip, submask)
+        routers[pc]["eth0"]["netip"] = get_net_ip(ip, submask) + "/" + str(submask)
         neigh = Prompt.ask(
             f"Enter neighbors for {pc}",
             default=" ".join(
                 nets[get_net_ip(ip, submask) + "/" + str(submask)]["members"]
             ),
         ).split()
+        for neigth in neigh:
+            if neigth not in routers:
+                continue
+            for iface, info in routers[neigth].items():
+                if info["netip"] == get_net_ip(ip, submask) + "/" + str(submask):
+                    routers[neigth][iface]["neigh"].append(pc)
+                    break
         nets[get_net_ip(ip, submask) + "/" + str(submask)]["members"].append(pc)
         routers[pc]["eth0"]["neigh"] = neigh
         Console().print(routers[pc])
@@ -221,6 +229,14 @@ def read_mroutes(path):
         )
         sources.update(tsources)
     # print(sources)
+    for net in nets:
+        for member in nets[net]["members"]:
+            for iface, info in routers[member].items():
+                if info["netip"] == net:
+                    routers[member][iface]["neigh"] = [
+                        mem for mem in nets[net]["members"] if mem != member
+                    ]
+                    break
     return routers, list(sources), nets
 
 
@@ -235,7 +251,7 @@ def print_routers(routers):
     Console().print(columns)
 
 
-def traverse_tree(routers, nets, source, current,depth=0):
+def traverse_tree(routers, nets, source, current, depth=0):
     if depth > 10:
         print("Depth limit reached")
         return Node(current)
@@ -252,15 +268,19 @@ def traverse_tree(routers, nets, source, current,depth=0):
             next = []
             for neigh in routers[current]["eth0"]["neigh"]:
                 if "R" in neigh:
+                    print(neigh)
                     for iface, info in routers[neigh].items():
+                        Console().print(info)
                         if current in info["neigh"] and "I" in info["pim"][source]:
-                            next.append(traverse_tree(routers, nets, source, neigh,depth+1))
+                            next.append(
+                                traverse_tree(routers, nets, source, neigh, depth + 1)
+                            )
                             break
                 elif (
                     "PC" in neigh
                     and nets[routers[neigh]["eth0"]["netip"]][source]["out"]
                 ):
-                    next.append(traverse_tree(routers, nets, source, neigh,depth+1))
+                    next.append(traverse_tree(routers, nets, source, neigh, depth + 1))
             return Node(current, next)
     else:
         next = []
@@ -282,18 +302,22 @@ def traverse_tree(routers, nets, source, current,depth=0):
                                     and "I" in info["pim"][source]
                                 ):
                                     next.append(
-                                        traverse_tree(routers, nets, source, neigh,depth+1)
+                                        traverse_tree(
+                                            routers, nets, source, neigh, depth + 1
+                                        )
                                     )
                                     break
                         elif (
                             "PC" in neigh
                             and nets[routers[neigh]["eth0"]["netip"]][source]["out"]
                         ):
-                            next.append(traverse_tree(routers, nets, source, neigh,depth+1))
+                            next.append(
+                                traverse_tree(routers, nets, source, neigh, depth + 1)
+                            )
         return Node(current, next)
 
 
-def generate_tree(routers, sources,nets):
+def generate_tree(routers, sources, nets):
     # Find the shared trees and the source trees
     # print_routers(routers)
     sips = [x[0] for x in sources]
@@ -306,84 +330,99 @@ def generate_tree(routers, sources,nets):
             if info["ip"] in sips:
                 for n, sip in enumerate(sips):
                     if sip == info["ip"]:
-                        source= sources[n]
+                        source = sources[n]
                         break
                 print(iface, info)
                 pcsources.append((dev, iface, source))
                 break
-    trees=[]
+    trees = []
     for source in pcsources:
         print(source)
-        tree=traverse_tree(routers, nets, source[2], source[0],)
+        tree = traverse_tree(
+            routers,
+            nets,
+            str(source[2]).replace("'",'"'),
+            source[0],
+        )
         trees.append(tree)
-        Console().print(tree.to_tree())
+        Console().print(tree)
 
-    return pcsources,trees
+    return pcsources, trees
 
 
 def test():
     routers = {
         "R01": {
-            "eth0": {"ip": "10.0.2.1", "pim": {}, "neigh": [], "netip": "10.0.2.0/24"},
+            "eth0": {
+                "ip": "10.0.2.1",
+                "pim": {},
+                "neigh": ["R05"],
+                "netip": "10.0.2.0/24",
+            },
             "eth1": {
                 "ip": "10.0.4.1",
                 "pim": {
-                    ("INADDR_ANY", "239.1.1.1"): "jo",
-                    ("10.0.16.101", "239.1.1.1"): "p",
+                    '("INADDR_ANY", "239.1.1.1")': "jo",
+                    '("10.0.16.101", "239.1.1.1")': "p",
                 },
-                "neigh": [],
+                "neigh": ["R02"],
                 "netip": "10.0.4.0/24",
             },
             "eth2": {
                 "ip": "10.0.5.1",
                 "pim": {
-                    ("INADDR_ANY", "239.1.1.1"): "jo",
-                    ("10.0.16.101", "239.1.1.1"): "p",
+                    '("INADDR_ANY", "239.1.1.1")': "jo",
+                    '("10.0.16.101", "239.1.1.1")': "p",
                 },
-                "neigh": [],
+                "neigh": ["R06"],
                 "netip": "10.0.5.0/24",
             },
             "virt": {
                 "ip": "10.0.2.1",
                 "pim": {
-                    ("INADDR_ANY", "239.1.1.1"): "I",
-                    ("10.0.16.101", "239.1.1.1"): "I",
+                    '("INADDR_ANY", "239.1.1.1")': "I",
+                    '("10.0.16.101", "239.1.1.1")': "I",
                 },
             },
         },
         "R02": {
             "eth0": {
                 "ip": "10.0.3.2",
-                "pim": {("10.0.16.101", "239.1.1.1"): "I"},
-                "neigh": [],
+                "pim": {'("10.0.16.101", "239.1.1.1")': "I"},
+                "neigh": ["R05"],
                 "netip": "10.0.3.0/24",
             },
             "eth1": {
                 "ip": "10.0.4.2",
-                "pim": {("INADDR_ANY", "239.1.1.1"): "I"},
-                "neigh": [],
+                "pim": {'("INADDR_ANY", "239.1.1.1")': "I"},
+                "neigh": ["R01"],
                 "netip": "10.0.4.0/24",
             },
-            "eth2": {"ip": "10.0.6.2", "pim": {}, "neigh": [], "netip": "10.0.6.0/24"},
+            "eth2": {
+                "ip": "10.0.6.2",
+                "pim": {},
+                "neigh": ["R07"],
+                "netip": "10.0.6.0/24",
+            },
             "eth3": {
                 "ip": "10.0.12.2",
                 "pim": {},
-                "neigh": [],
+                "neigh": ["R03"],
                 "netip": "10.0.12.0/24",
             },
             "eth4": {
                 "ip": "10.0.17.2",
-                "pim": {("10.0.16.101", "239.1.1.1"): "jo"},
-                "neigh": [],
+                "pim": {'("10.0.16.101", "239.1.1.1")': "jo"},
+                "neigh": ["R06"],
                 "netip": "10.0.17.0/24",
             },
             "eth5": {
                 "ip": "10.0.18.2",
                 "pim": {
-                    ("INADDR_ANY", "239.1.1.1"): "jo",
-                    ("10.0.16.101", "239.1.1.1"): "o",
+                    '("INADDR_ANY", "239.1.1.1")': "jo",
+                    '("10.0.16.101", "239.1.1.1")': "o",
                 },
-                "neigh": [],
+                "neigh": ["R08"],
                 "netip": "10.0.18.0/24",
             },
             "virt": {"ip": "10.0.3.2", "pim": {}},
@@ -392,19 +431,19 @@ def test():
             "eth0": {
                 "ip": "10.0.12.3",
                 "pim": {},
-                "neigh": [],
+                "neigh": ["R02"],
                 "netip": "10.0.12.0/24",
             },
             "eth1": {
                 "ip": "10.0.14.3",
                 "pim": {},
-                "neigh": [],
+                "neigh": ["R08", "PC05"],
                 "netip": "10.0.14.0/24",
             },
             "eth2": {
                 "ip": "10.0.15.3",
                 "pim": {},
-                "neigh": [],
+                "neigh": ["R04"],
                 "netip": "10.0.15.0/24",
             },
             "virt": {"ip": "10.0.12.3", "pim": {}},
@@ -412,45 +451,50 @@ def test():
         "R04": {
             "eth0": {
                 "ip": "10.0.11.4",
-                "pim": {("10.0.16.101", "239.1.1.1"): "jo"},
-                "neigh": [],
+                "pim": {'("10.0.16.101", "239.1.1.1")': "jo"},
+                "neigh": ["R05"],
                 "netip": "10.0.11.0/24",
             },
             "eth1": {
                 "ip": "10.0.15.4",
                 "pim": {},
-                "neigh": [],
+                "neigh": ["R03"],
                 "netip": "10.0.15.0/24",
             },
             "eth2": {
                 "ip": "10.0.16.4",
                 "pim": {
-                    ("10.0.16.102", "239.1.1.1"): "I",
-                    ("10.0.16.101", "239.1.1.1"): "I",
+                    '("10.0.16.102", "239.1.1.1")': "I",
+                    '("10.0.16.101", "239.1.1.1")': "I",
                 },
-                "neigh": [],
+                "neigh": ["PC01", "PC02"],
                 "netip": "10.0.16.0/24",
             },
             "virt": {
                 "ip": "10.0.11.4",
                 "pim": {
-                    ("10.0.16.102", "239.1.1.1"): "jo",
-                    ("10.0.16.101", "239.1.1.1"): "jp",
+                    '("10.0.16.102", "239.1.1.1")': "jo",
+                    '("10.0.16.101", "239.1.1.1")': "jp",
                 },
             },
         },
         "R05": {
-            "eth0": {"ip": "10.0.2.5", "pim": {}, "neigh": [], "netip": "10.0.2.0/24"},
+            "eth0": {
+                "ip": "10.0.2.5",
+                "pim": {},
+                "neigh": ["R01"],
+                "netip": "10.0.2.0/24",
+            },
             "eth1": {
                 "ip": "10.0.3.5",
-                "pim": {("10.0.16.101", "239.1.1.1"): "jo"},
-                "neigh": [],
+                "pim": {'("10.0.16.101", "239.1.1.1")': "jo"},
+                "neigh": ["R02"],
                 "netip": "10.0.3.0/24",
             },
             "eth2": {
                 "ip": "10.0.11.5",
-                "pim": {("10.0.16.101", "239.1.1.1"): "I"},
-                "neigh": [],
+                "pim": {'("10.0.16.101", "239.1.1.1")': "I"},
+                "neigh": ["R04"],
                 "netip": "10.0.11.0/24",
             },
             "virt": {"ip": "10.0.2.5", "pim": {}},
@@ -458,50 +502,65 @@ def test():
         "R06": {
             "eth0": {
                 "ip": "10.0.5.6",
-                "pim": {("INADDR_ANY", "239.1.1.1"): "I"},
-                "neigh": [],
+                "pim": {'("INADDR_ANY", "239.1.1.1")': "I"},
+                "neigh": ["R01"],
                 "netip": "10.0.5.0/24",
             },
             "eth1": {
                 "ip": "10.0.7.6",
                 "pim": {
-                    ("INADDR_ANY", "239.1.1.1"): "lo",
-                    ("10.0.16.101", "239.1.1.1"): "lo",
+                    '("INADDR_ANY", "239.1.1.1")': "lo",
+                    '("10.0.16.101", "239.1.1.1")': "lo",
                 },
-                "neigh": [],
+                "neigh": ["PC03"],
                 "netip": "10.0.7.0/24",
             },
-            "eth2": {"ip": "10.0.8.6", "pim": {}, "neigh": [], "netip": "10.0.8.0/24"},
+            "eth2": {
+                "ip": "10.0.8.6",
+                "pim": {},
+                "neigh": ["R07"],
+                "netip": "10.0.8.0/24",
+            },
             "eth3": {
                 "ip": "10.0.9.6",
                 "pim": {
-                    ("INADDR_ANY", "239.1.1.1"): "jo",
-                    ("10.0.16.101", "239.1.1.1"): "jo",
+                    '("INADDR_ANY", "239.1.1.1")': "jo",
+                    '("10.0.16.101", "239.1.1.1")': "jo",
                 },
-                "neigh": [],
+                "neigh": ["R09"],
                 "netip": "10.0.9.0/24",
             },
             "eth4": {
                 "ip": "10.0.17.6",
-                "pim": {("10.0.16.101", "239.1.1.1"): "I"},
-                "neigh": [],
+                "pim": {'("10.0.16.101", "239.1.1.1")': "I"},
+                "neigh": ["R02"],
                 "netip": "10.0.17.0/24",
             },
             "virt": {"ip": "10.0.5.6", "pim": {}},
         },
         "R07": {
-            "eth0": {"ip": "10.0.6.7", "pim": {}, "neigh": [], "netip": "10.0.6.0/24"},
-            "eth1": {"ip": "10.0.8.7", "pim": {}, "neigh": [], "netip": "10.0.8.0/24"},
+            "eth0": {
+                "ip": "10.0.6.7",
+                "pim": {},
+                "neigh": ["R02"],
+                "netip": "10.0.6.0/24",
+            },
+            "eth1": {
+                "ip": "10.0.8.7",
+                "pim": {},
+                "neigh": ["R06"],
+                "netip": "10.0.8.0/24",
+            },
             "eth2": {
                 "ip": "10.0.10.7",
                 "pim": {},
-                "neigh": [],
+                "neigh": ["R09", "PC04"],
                 "netip": "10.0.10.0/24",
             },
             "eth3": {
                 "ip": "10.0.13.7",
                 "pim": {},
-                "neigh": [],
+                "neigh": ["R08"],
                 "netip": "10.0.13.0/24",
             },
             "virt": {"ip": "10.0.6.7", "pim": {}},
@@ -510,19 +569,19 @@ def test():
             "eth0": {
                 "ip": "10.0.13.8",
                 "pim": {},
-                "neigh": [],
+                "neigh": ["R07"],
                 "netip": "10.0.13.0/24",
             },
             "eth1": {
                 "ip": "10.0.14.8",
-                "pim": {("INADDR_ANY", "239.1.1.1"): "lo"},
-                "neigh": [],
+                "pim": {'("INADDR_ANY", "239.1.1.1")': "lo"},
+                "neigh": ["R03", "PC05"],
                 "netip": "10.0.14.0/24",
             },
             "eth2": {
                 "ip": "10.0.18.8",
-                "pim": {("INADDR_ANY", "239.1.1.1"): "I"},
-                "neigh": [],
+                "pim": {'("INADDR_ANY", "239.1.1.1")': "I"},
+                "neigh": ["R02"],
                 "netip": "10.0.18.0/24",
             },
             "virt": {"ip": "10.0.13.8", "pim": {}},
@@ -531,19 +590,19 @@ def test():
             "eth0": {
                 "ip": "10.0.9.9",
                 "pim": {
-                    ("INADDR_ANY", "239.1.1.1"): "I",
-                    ("10.0.16.101", "239.1.1.1"): "I",
+                    '("INADDR_ANY", "239.1.1.1")': "I",
+                    '("10.0.16.101", "239.1.1.1")': "I",
                 },
-                "neigh": [],
+                "neigh": ["R06"],
                 "netip": "10.0.9.0/24",
             },
             "eth1": {
                 "ip": "10.0.10.9",
                 "pim": {
-                    ("INADDR_ANY", "239.1.1.1"): "lo",
-                    ("10.0.16.101", "239.1.1.1"): "lo",
+                    '("INADDR_ANY", "239.1.1.1")': "lo",
+                    '("10.0.16.101", "239.1.1.1")': "lo",
                 },
-                "neigh": [],
+                "neigh": ["R07", "PC04"],
                 "netip": "10.0.10.0/24",
             },
             "virt": {"ip": "10.0.9.9", "pim": {}},
@@ -562,68 +621,78 @@ def test():
                 "neigh": ["R04", "PC01"],
             }
         },
-        "PC03": {"eth0": {"ip": "10.0.7.103", "netip": "10.0.7.0/24", "neigh": ["R06"]}},
+        "PC03": {
+            "eth0": {"ip": "10.0.7.103", "netip": "10.0.7.0/24", "neigh": ["R06"]}
+        },
         "PC04": {
-            "eth0": {"ip": "10.0.10.104", "netip": "10.0.10.0/24", "neigh": ["R07", "R09"]}
+            "eth0": {
+                "ip": "10.0.10.104",
+                "netip": "10.0.10.0/24",
+                "neigh": ["R07", "R09"],
+            }
         },
         "PC05": {
-            "eth0": {"ip": "10.0.14.105", "netip": "10.0.14.0/24", "neigh": ["R03", "R08"]}
+            "eth0": {
+                "ip": "10.0.14.105",
+                "netip": "10.0.14.0/24",
+                "neigh": ["R03", "R08"],
+            }
         },
     }
     nets = {
         "10.0.2.0/24": {"members": ["R01", "R05"]},
         "10.0.4.0/24": {
             "members": ["R01", "R02"],
-            ("INADDR_ANY", "239.1.1.1"): {"out": True, "in": True},
+            '("INADDR_ANY", "239.1.1.1")': {"out": True, "in": True},
         },
         "10.0.5.0/24": {
             "members": ["R01", "R06"],
-            ("INADDR_ANY", "239.1.1.1"): {"out": True, "in": True},
+            '("INADDR_ANY", "239.1.1.1")': {"out": True, "in": True},
         },
         "10.0.3.0/24": {
             "members": ["R02", "R05"],
-            ("10.0.16.101", "239.1.1.1"): {"in": True, "out": True},
+            '("10.0.16.101", "239.1.1.1")': {"in": True, "out": True},
         },
         "10.0.6.0/24": {"members": ["R02", "R07"]},
         "10.0.12.0/24": {"members": ["R02", "R03"]},
         "10.0.17.0/24": {
             "members": ["R02", "R06"],
-            ("10.0.16.101", "239.1.1.1"): {"out": True, "in": True},
+            '("10.0.16.101", "239.1.1.1")': {"out": True, "in": True},
         },
         "10.0.18.0/24": {
             "members": ["R02", "R08"],
-            ("INADDR_ANY", "239.1.1.1"): {"out": True, "in": True},
-            ("10.0.16.101", "239.1.1.1"): {"out": True},
+            '("INADDR_ANY", "239.1.1.1")': {"out": True, "in": True},
+            '("10.0.16.101", "239.1.1.1")': {"out": True, "in": False},
         },
         "10.0.14.0/24": {
             "members": ["R03", "R08", "PC05"],
-            ("INADDR_ANY", "239.1.1.1"): {"out": True},
+            '("INADDR_ANY", "239.1.1.1")': {"out": True, "in": False},
         },
         "10.0.15.0/24": {"members": ["R03", "R04"]},
         "10.0.11.0/24": {
             "members": ["R04", "R05"],
-            ("10.0.16.101", "239.1.1.1"): {"out": True, "in": True},
+            '("10.0.16.101", "239.1.1.1")': {"out": True, "in": True},
         },
         "10.0.16.0/24": {
             "members": ["R04", "PC01", "PC02"],
-            ("10.0.16.102", "239.1.1.1"): {"in": True},
-            ("10.0.16.101", "239.1.1.1"): {"in": True},
+            '("10.0.16.102", "239.1.1.1")': {"in": True, "out": False},
+            '("10.0.16.101", "239.1.1.1")': {"in": True, "out": False},
         },
         "10.0.7.0/24": {
             "members": ["R06", "PC03"],
-            ("INADDR_ANY", "239.1.1.1"): {"out": True},
-            ("10.0.16.101", "239.1.1.1"): {"out": True},
+            '("INADDR_ANY", "239.1.1.1")': {"out": True, "in": False},
+            '("10.0.16.101", "239.1.1.1")': {"out": True, "in": False},
         },
         "10.0.8.0/24": {"members": ["R06", "R07"]},
         "10.0.9.0/24": {
             "members": ["R06", "R09"],
-            ("INADDR_ANY", "239.1.1.1"): {"out": True, "in": True},
-            ("10.0.16.101", "239.1.1.1"): {"out": True, "in": True},
+            '("INADDR_ANY", "239.1.1.1")': {"out": True, "in": True},
+            '("10.0.16.101", "239.1.1.1")': {"out": True, "in": True},
         },
         "10.0.10.0/24": {
             "members": ["R07", "R09", "PC04"],
-            ("INADDR_ANY", "239.1.1.1"): {"out": True},
-            ("10.0.16.101", "239.1.1.1"): {"out": True},
+            '("INADDR_ANY", "239.1.1.1")': {"out": True, "in": False},
+            '("10.0.16.101", "239.1.1.1")': {"out": True, "in": False},
         },
         "10.0.13.0/24": {"members": ["R07", "R08"]},
     }
@@ -643,12 +712,12 @@ def test():
     # )
     # print_routers(routers)
     print(sources)
-    Console().print(nets)
+    # Console().print(nets)
     # routers, nets = pc_from_console(routers, nets)
     # Console().print(nets)
     # Console().print(routers)
     print_routers(routers)
-    print(generate_tree(routers, sources,nets))
+    print(generate_tree(routers, sources, nets))
 
 
 test()
