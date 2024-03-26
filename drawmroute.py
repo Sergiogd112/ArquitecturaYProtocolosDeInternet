@@ -19,8 +19,29 @@ class Node:
         for n in self.next:
             tree.add(n.to_tree())
         return tree
+    def to_dict(self):
+        tree = {self.name: []}
+        for n in self.next:
+            tree[self.name].append(n.to_dict())
+        return tree
+
+    def set_reunion_router(self, reunion_router):
+        if self.name == "RP":
+            self.name="Pim Register"
+            self.next.append(reunion_router.deep_copy())
+            return True
+        for nnode in self.next:
+            if "PC" in nnode.name:
+                continue
+            res = nnode.set_reunion_router(reunion_router.deep_copy())
+            if res:
+                return True
+
     def __repr__(self):
-        return self.name+"->"+str("\n ".join([str(x) for x in self.next]))
+        return self.name + "->(" + str(", ".join([str(x) for x in self.next]))+")"
+    def deep_copy(self):
+        return Node(self.name,[n.deep_copy() for n in self.next])
+
 
 def net_from_console():
     routers = {}
@@ -251,70 +272,85 @@ def print_routers(routers):
     Console().print(columns)
 
 
-def traverse_tree(routers, nets, source, current, depth=0):
+def traverse_tree(routers, nets, sourcetupl, current, depth=0):
     if depth > 10:
         print("Depth limit reached")
         return Node(current)
+    sourcekey = str(sourcetupl).replace("'", '"')
+    reunion_router = False
     if "PC" in current:
         if (
-            nets[routers[current]["eth0"]["netip"]][source]["out"]
-            and source[0] != routers[current]["eth0"]["ip"]
+            nets[routers[current]["eth0"]["netip"]][sourcekey]["out"]
+            and sourcetupl[0] != routers[current]["eth0"]["ip"]
         ):
-            return Node(current)
+            return Node(current),reunion_router
         if (
-            nets[routers[current]["eth0"]["netip"]][source]["in"]
-            and source[0] == routers[current]["eth0"]["ip"]
+            nets[routers[current]["eth0"]["netip"]][sourcekey]["in"]
+            and sourcetupl[0] == routers[current]["eth0"]["ip"]
         ):
-            next = []
+            next_nodes = []
             for neigh in routers[current]["eth0"]["neigh"]:
                 if "R" in neigh:
-                    print(neigh)
                     for iface, info in routers[neigh].items():
-                        Console().print(info)
-                        if current in info["neigh"] and "I" in info["pim"][source]:
-                            next.append(
-                                traverse_tree(routers, nets, source, neigh, depth + 1)
+                        if current in info["neigh"] and "I" in info["pim"][sourcekey]:
+                            nnode, nreunion_router = traverse_tree(
+                                routers, nets, sourcetupl, neigh, depth + 1
                             )
+                            reunion_router = reunion_router or nreunion_router
+                            next_nodes.append(nnode)
                             break
                 elif (
                     "PC" in neigh
-                    and nets[routers[neigh]["eth0"]["netip"]][source]["out"]
+                    and nets[routers[neigh]["eth0"]["netip"]][sourcekey]["out"]
                 ):
-                    next.append(traverse_tree(routers, nets, source, neigh, depth + 1))
-            return Node(current, next)
+                    next_nodes.append(
+                        traverse_tree(routers, nets, sourcetupl, neigh, depth + 1)
+                    )
+            return Node(current, next_nodes), reunion_router
+
+        return Node(current), reunion_router
     else:
-        next = []
+        next_nodes = []
         for iface, info in routers[current].items():
+            if sourcekey not in info["pim"]:
+                continue
             if "virt" in iface:
-                if "I" in info["pim"][source]:
+                if "I" in info["pim"][sourcekey]:
                     continue
-                if "o" in info["pim"][source]:
-                    next.append(Node("RP"))
+                if "o" in info["pim"][sourcekey]:
+                    reunion_router = True
+                    next_nodes.append(Node("RP"))
             else:
-                if "I" in info["pim"][source]:
+                if "I" in info["pim"][sourcekey]:
                     continue
-                if "o" in info["pim"][source]:
-                    for neigh in routers[current]["eth0"]["neigh"]:
+                if "o" in info["pim"][sourcekey]:
+                    for neigh in routers[current][iface]["neigh"]:
                         if "R" in neigh:
-                            for iface, info in routers[neigh].items():
+                            for iface2, info2 in routers[neigh].items():
+                                if sourcekey not in info2["pim"]:
+                                    continue
+                                if "virt" in iface2:
+                                    continue
                                 if (
-                                    current in info["neigh"]
-                                    and "I" in info["pim"][source]
+                                    current in info2["neigh"]
+                                    and "I" in info2["pim"][sourcekey]
                                 ):
-                                    next.append(
-                                        traverse_tree(
-                                            routers, nets, source, neigh, depth + 1
-                                        )
+                                    nnode, nreunion_router = traverse_tree(
+                                        routers, nets, sourcetupl, neigh, depth + 1
                                     )
+                                    reunion_router = reunion_router or nreunion_router
+                                    next_nodes.append(nnode)
                                     break
                         elif (
                             "PC" in neigh
-                            and nets[routers[neigh]["eth0"]["netip"]][source]["out"]
+                            and nets[routers[neigh]["eth0"]["netip"]][sourcekey]["out"]
                         ):
-                            next.append(
-                                traverse_tree(routers, nets, source, neigh, depth + 1)
+                            nnode, nreunion_router = traverse_tree(
+                                routers, nets, sourcetupl, neigh, depth + 1
                             )
-        return Node(current, next)
+                            reunion_router = reunion_router or nreunion_router
+                            next_nodes.append(nnode)
+        return Node(current, next_nodes), reunion_router
 
 
 def generate_tree(routers, sources, nets):
@@ -322,8 +358,18 @@ def generate_tree(routers, sources, nets):
     # print_routers(routers)
     sips = [x[0] for x in sources]
     pcsources = []
+    RP = None
     for dev, conf in routers.items():
         if "PC" not in dev:
+            if (
+                str(("INADDR_ANY", sources[0][1])).replace("'", '"')
+                in conf["virt"]["pim"]
+                and conf["virt"]["pim"][
+                    str(("INADDR_ANY", sources[0][1])).replace("'", '"')
+                ]
+                == "I"
+            ):
+                RP = dev
             continue
         print(dev)
         for iface, info in conf.items():
@@ -336,17 +382,36 @@ def generate_tree(routers, sources, nets):
                 pcsources.append((dev, iface, source))
                 break
     trees = []
-    for source in pcsources:
-        print(source)
-        tree = traverse_tree(
+    rps=[]
+    sht,_=traverse_tree(
             routers,
             nets,
-            str(source[2]).replace("'",'"'),
+            ("INADDR_ANY", sources[0][1]),
+            RP,
+        )
+    Console().print(sht)
+    for source in pcsources:
+        print(source)
+        tree,rp = traverse_tree(
+            routers,
+            nets,
+            source[2],
             source[0],
         )
         trees.append(tree)
-        Console().print(tree)
+        rps.append(rp)
+        print(rp)
+    columns=Columns()
+    for tree,rp in zip(trees,rps):
+        print(tree.name)
+        tsht=sht.deep_copy()
+        if rp:
+            tree.set_reunion_router(tsht.deep_copy())
+        columns.add_renderable(Panel(tree.to_tree()))
+        sht=tsht.deep_copy()
 
+    columns.add_renderable(Panel(sht.to_tree()))
+    Console().print(columns)
     return pcsources, trees
 
 
@@ -717,7 +782,8 @@ def test():
     # Console().print(nets)
     # Console().print(routers)
     print_routers(routers)
-    print(generate_tree(routers, sources, nets))
+    print("generating tree")
+    generate_tree(routers, sources, nets)
 
 
 test()
