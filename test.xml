@@ -1,0 +1,4 @@
+<SectionHeader version= 1.0 endianness='<' length= -1 options= Options({'shb_os' : ['Linux 4.15.0-34-generic' ], 'shb_userappl' : ['Dumpcap (Wireshark) 2.2.6 (Git Rev Unknown from unknown)' ]})>
+<InterfaceDescription link_type= 1 reserved= 0 snaplen= 262144 options= Options({'if_name' : ['R02-eth0' ], 'if_tsresol' : [b'\t' ], 'if_os' : ['Linux 4.15.0-34-generic' ]})>
+<EnhancedPacket interface_id= 0 timestamp_high= 380865872 timestamp_low= 2360640260 captured_len= 66 packet_len= 66
+    packet_data= b'\x01\x00^\x00\x00\tR\xe0\x97\xb6 \xda\x08\x00E\xc0\x004\xccG@\x00\x01\x11\x0b_\xc0\xa8\x00\xa1\xe0\x00\x00\t\x02\x08\x02\x08\x00 \xa1\x84\x02\x02\x00\x00\x00\x02\x00\x00\xc0\xa8\x00\x80\xff\xff\xff\xf0\x00\x00\x00\x00\x00\x00\x00\x01' options= Options({})>

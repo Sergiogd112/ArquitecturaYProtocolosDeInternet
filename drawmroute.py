@@ -1,11 +1,16 @@
 #!/usr/bin/python3
 
 import os
+
 from rich.tree import Tree
 from rich.console import Console
 from rich.prompt import Prompt, IntPrompt
 from rich.panel import Panel
 from rich.columns import Columns
+import networkx as nx
+from matplotlib import pyplot as plt
+from pyvis.network import Network
+
 from Net.ip import *
 
 
@@ -19,6 +24,7 @@ class Node:
         for n in self.next:
             tree.add(n.to_tree())
         return tree
+
     def to_dict(self):
         tree = {self.name: []}
         for n in self.next:
@@ -27,7 +33,7 @@ class Node:
 
     def set_reunion_router(self, reunion_router):
         if self.name == "RP":
-            self.name="Pim Register"
+            self.name = "Pim Register"
             self.next.append(reunion_router.deep_copy())
             return True
         for nnode in self.next:
@@ -38,9 +44,10 @@ class Node:
                 return True
 
     def __repr__(self):
-        return self.name + "->(" + str(", ".join([str(x) for x in self.next]))+")"
+        return self.name + "->(" + str(", ".join([str(x) for x in self.next])) + ")"
+
     def deep_copy(self):
-        return Node(self.name,[n.deep_copy() for n in self.next])
+        return Node(self.name, [n.deep_copy() for n in self.next])
 
 
 def net_from_console():
@@ -283,7 +290,7 @@ def traverse_tree(routers, nets, sourcetupl, current, depth=0):
             nets[routers[current]["eth0"]["netip"]][sourcekey]["out"]
             and sourcetupl[0] != routers[current]["eth0"]["ip"]
         ):
-            return Node(current),reunion_router
+            return Node(current), reunion_router
         if (
             nets[routers[current]["eth0"]["netip"]][sourcekey]["in"]
             and sourcetupl[0] == routers[current]["eth0"]["ip"]
@@ -382,17 +389,17 @@ def generate_tree(routers, sources, nets):
                 pcsources.append((dev, iface, source))
                 break
     trees = []
-    rps=[]
-    sht,_=traverse_tree(
-            routers,
-            nets,
-            ("INADDR_ANY", sources[0][1]),
-            RP,
-        )
+    rps = []
+    sht, _ = traverse_tree(
+        routers,
+        nets,
+        ("INADDR_ANY", sources[0][1]),
+        RP,
+    )
     Console().print(sht)
     for source in pcsources:
         print(source)
-        tree,rp = traverse_tree(
+        tree, rp = traverse_tree(
             routers,
             nets,
             source[2],
@@ -401,18 +408,56 @@ def generate_tree(routers, sources, nets):
         trees.append(tree)
         rps.append(rp)
         print(rp)
-    columns=Columns()
-    for tree,rp in zip(trees,rps):
+    columns = Columns()
+    for tree, rp, source in zip(trees, rps, pcsources):
         print(tree.name)
-        tsht=sht.deep_copy()
+        tsht = sht.deep_copy()
         if rp:
             tree.set_reunion_router(tsht.deep_copy())
-        columns.add_renderable(Panel(tree.to_tree()))
-        sht=tsht.deep_copy()
+        columns.add_renderable(
+            Panel(tree.to_tree(), title=f"Source Tree from {source[0]} {source[2]}")
+        )
+        sht = tsht.deep_copy()
 
-    columns.add_renderable(Panel(sht.to_tree()))
+    columns.add_renderable(Panel(sht.to_tree(), title="Shared Tree"))
     Console().print(columns)
     return pcsources, trees
+
+
+def routers_to_networkx(routers, sources):
+    G = nx.DiGraph()  # Make the graph directed
+    edge_labels = dict()
+    for source in sources:
+        edge_labels[str(source).replace("'", '"')] = {}
+    edge_labels["ip"] = {}
+    for router, info in routers.items():
+        G.add_node(router, subset="R" if "PC" not in router else "PC")
+        for iface, data in info.items():
+            if "virt" in iface:
+                G.add_edge(router, router)  # Add pim data to the edge
+                if "pim" in data:
+                    for source in data["pim"]:
+                        edge_labels[source][(router, router)] = data["pim"][source]
+                continue
+            G.add_node(data["netip"], subset="net", weigth=0.3)
+
+            G.add_edge(router, data["netip"], weight=10)  # Add pim data to the edge
+            edge_labels["ip"][(router, data["netip"])] = ".".join(
+                data["ip"].split(".")[-2:]
+            )
+            if "pim" in data:
+                for source in data["pim"]:
+                    edge_labels[source][(router, data["netip"])] = data["pim"][source]
+    return G, edge_labels
+
+
+def average_pos(nodelist, pos):
+    x = 0
+    y = 0
+    for node in nodelist:
+        x += pos[node][0]
+        y += pos[node][1]
+    return x / len(nodelist), y / len(nodelist)
 
 
 def test():
@@ -784,6 +829,79 @@ def test():
     print_routers(routers)
     print("generating tree")
     generate_tree(routers, sources, nets)
+    G, edge_labels = routers_to_networkx(routers, sources)
+    layout = [
+        [None, "R01", "R05", "R04", "PC01"],
+        ["PC03", "R06", "R02", "R03", "PC02"],
+        [None, "R09", "R07", "R08", "PC05"],
+        [None, "PC04"],
+    ]
+    pos = nx.spring_layout(G)
+    scale = 1
+    for i, row in enumerate(layout):
+        for j, elem in enumerate(row):
+            if elem is None:
+                continue
+            pos[elem] = (j, -i)
+
+    for i, p in enumerate(pos):
+        if "R" not in p and "PC" not in p:
+            for net in nets:
+                if p in net:
+                    pos[p] = average_pos(nets[net]["members"], pos)
+                    break
+
+    # pos = nx.spring_layout(
+    #     G, pos=pos, fixed=list(routers.keys()), iterations=10000, k=0.5, weight="weight"
+    # )
+    # plot the graph
+    colours = [
+        "red",
+        "blue",
+        "green",
+        "yellow",
+        "orange",
+        "purple",
+        "pink",
+        "brown",
+        "grey",
+        "black",
+    ]
+    node_colour_map = [
+        "blue" if "PC" in node else "red" if "R" in node else "green"
+        for node in G.nodes
+    ]
+    nx.draw(G, pos, with_labels=True, node_color=node_colour_map)
+    nx.draw_networkx_edge_labels(
+        G,
+        pos,
+        edge_labels=edge_labels["ip"],
+        label_pos=0.8,
+        font_color=colours[-1],
+        font_size=10,
+        font_weight="bold",
+    )
+    for n, source in enumerate(sources):
+
+        nx.draw_networkx_edge_labels(
+            G,
+            pos,
+            edge_labels=edge_labels[str(source).replace("'", '"')],
+            label_pos=0.6 - n * 0.2,
+            font_color=colours[n],
+            font_size=10,
+            font_weight="bold",
+        )
+
+    plt.show()
+    # net = Network(
+    #     directed=True,
+    #     select_menu=True,  # Show part 1 in the plot (optional)
+    #     filter_menu=True,  # Show part 2 in the plot (optional)
+    # )
+    # net.show_buttons()  # Show part 3 in the plot (optional)
+    # net.from_nx(G)  # Create directly from nx graph
+    # net.show("test.html")
 
 
 test()
