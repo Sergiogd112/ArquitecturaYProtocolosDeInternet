@@ -26,11 +26,12 @@ class BGP_table:
                 "Weight",
                 "Path",
                 "Removed",
-                "Src"
+                "Src",
+                "Pidx",
             ]
         )
 
-    def update(self, pack, pubip_pref):
+    def update(self, pack, pubip_pref, pidx):
         bgp_pack = pack[BGPUpdate]
         while bgp_pack:
             # Console().print(Panel(Pretty(bgp_pack.fields)))
@@ -58,29 +59,29 @@ class BGP_table:
                         med = attr.med
                     elif "LOCAL_PREF" in attr.name:
                         lp = attr.local_pref
+
                 as_ip_src = get_net_ip(pack[IP].src.split("/")[0], 24)
                 # check if the network and next hop are in the table
-                net=bgp_pack.nlri[0].prefix.split('/')[0]
-                mask=bgp_pack.nlri[0].prefix.split('/')[1]
-                query = (
-                    f"Network=='{net}'"
-                    + f" and Next_Hop=='{next_hop}'"
-                )
+                net = bgp_pack.nlri[0].prefix.split("/")[0]
+                mask = bgp_pack.nlri[0].prefix.split("/")[1]
+                query = f"Network=='{net}'" + f" and Next_Hop=='{next_hop}'"
                 if len(self.table.query(query)) > 0:
                     # set the removed flag to true
                     self.table.loc[
-                        self.table.query(
-                            f"Network=='{net}' and Mask=='{bgp_pack.nlri[0].prefix.split('/')[1]}' and Next_Hop=='{next_hop}'"
-                        ).index,
+                        self.table.query(query).index,
                         "Removed",
-                    ] = True
-                if len(self.table.query(f"Network=='{net}' and Src=='{pack[IP].src}'"))>0:
+                    ] = pidx
+                if (
+                    len(self.table.query(f"Network=='{net}' and Src=='{pack[IP].src}'"))
+                    > 0
+                ):
                     self.table.loc[
                         self.table.query(
                             f"Network=='{net}' and Src=='{pack[IP].src}'"
                         ).index,
                         "Removed",
-                    ] = True
+                    ] = pidx
+
                 # add the new route to the table
                 self.table = pd.concat(
                     [
@@ -101,8 +102,9 @@ class BGP_table:
                                     "LocPrf": lp,
                                     "Weight": 0,
                                     "Path": as_path,
-                                    "Removed": False,
+                                    "Removed": -1,
                                     "Src": pack[IP].src,
+                                    "Pidx": pidx,
                                 }
                             ]
                         ),
@@ -110,6 +112,19 @@ class BGP_table:
                     ignore_index=True,
                 )
             # check if it has a payload
+            # check withdrawed routes
+            if bgp_pack.withdrawn_routes:
+                for route in bgp_pack.withdrawn_routes:
+                    net = route.prefix.split("/")[0]
+                    mask = route.prefix.split("/")[1]
+                    query = (
+                        f"Network=='{net}' and Mask=='{mask}' and Src=='{pack[IP].src}'"
+                    )
+                    if len(self.table.query(query)) > 0:
+                        self.table.loc[
+                            self.table.query(query).index,
+                            "Removed",
+                        ] = pidx
             if bgp_pack.payload:
                 bgp_pack = bgp_pack.payload[BGPUpdate]
             else:
@@ -126,8 +141,9 @@ class BGP_table:
         table.add_column("LocPrf")
         table.add_column("Weight")
         table.add_column("Path")
-        table.add_column("Removed")
         table.add_column("Src")
+        table.add_column("Pidx")
+        table.add_column("Removed")
         for index, row in self.table.query(query).iterrows():
             table.add_row(
                 str(row["selected"]),
@@ -139,11 +155,12 @@ class BGP_table:
                 str(row["LocPrf"]),
                 str(row["Weight"]),
                 str(row["Path"]),
-                str(row["Removed"]),
                 row["Src"],
+                str(row["Pidx"]),
+                str(row["Removed"]) if row["Removed"] != -1 else "",
                 style=(
-                    ("bold" if row["selected"] else "") + " red strike"
-                    if row["Removed"]
+                    ("bold" if row["selected"] else "") + " red italic"
+                    if row["Removed"] != -1
                     else "green"
                 ),
             )
@@ -165,7 +182,7 @@ for pack in capt:
     bgpu_pack = pack[BGPUpdate]
 ips = list(ips)
 ips.sort(key=ip_to_int)
-console.print(ips)
+# console.print(ips)
 
 ips_to_name = {
     "15.0.0.1": "R01",
@@ -218,11 +235,9 @@ for ipset in ipsets:
 # console.print(routers)
 pubip_pref = list(pubip_pref)[0]
 for n, pack in enumerate(capt):
-    if n == 70:
-        print("este")
     ipdest = pack[IP].dst
-    print(n, ips_to_name[ipdest])
-    routers[ips_to_name[ipdest]]["table"].update(pack, pubip_pref)
+    routers[ips_to_name[ipdest]]["table"].update(pack, pubip_pref, n + 1)
+
 for router in sorted(list(routers.keys()), key=lambda x: int(x[1:])):
     console.print(
         Panel(
