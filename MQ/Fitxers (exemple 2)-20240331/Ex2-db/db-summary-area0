@@ -1,0 +1,42 @@
+
+       OSPF Router with ID (10.0.0.33)
+
+
+                Summary Link States (Area 0.0.0.0)
+
+  LS age: 150
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.0.1.0 (summary Network Number)
+  Advertising Router: 10.0.1.2
+  LS Seq Number: 80000003
+  Checksum: 0x998b
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 30
+
+  LS age: 150
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.0.1.0 (summary Network Number)
+  Advertising Router: 10.0.1.97
+  LS Seq Number: 80000002
+  Checksum: 0x5f67
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 30
+
+  LS age: 161
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: summary-LSA
+  Link State ID: 10.0.2.0 (summary Network Number)
+  Advertising Router: 10.0.2.34
+  LS Seq Number: 80000002
+  Checksum: 0x64a9
+  Length: 28
+  Network Mask: /24
+        TOS: 0  Metric: 20
+

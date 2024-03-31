@@ -3,8 +3,10 @@ from scapy.layers.inet import IP, UDP, TCP
 from scapy.layers.rip import RIP, RIPEntry
 from scapy.utils import PcapReader
 from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
 import os
-from Net.ip import get_net_ip,ip_to_int
+from Net.ip import get_net_ip, ip_to_int
 
 
 def octet_to_int_mask(octet):
@@ -24,7 +26,7 @@ def parse_rip_packet(packet, devs):
         metric = entry.metric
         table.append(
             [
-                "R",
+                "R>*",
                 net,
                 octet_to_int_mask(mask),
                 [120, metric + 1],
@@ -62,29 +64,21 @@ def check_in_table(table, row):
 
 blocks = []
 console = Console()
+folder = os.path.join("MQ", "Fitxers-20240325")
 ex = 1
-files = [
-    os.path.join("MQ", "Fitxers-20240325", f)
-    for f in os.listdir(os.path.join("MQ", "Fitxers-20240325"))
-    if f.startswith(f"Ex{ex}")
-]
+files = [os.path.join(folder, f) for f in os.listdir(folder) if f.startswith(f"Ex{ex}")]
 
 devs = {}
 
 
 # print(block._raw) #byte type raw data
-console.print(devs)
 table = []
-console.print(files)
 for file in files:
     data = rdpcap(
         file,
     )
-    console.print(data)
-    console.print(len(data))
     devs[data[0][IP].src] = os.path.basename(file).split(".")[0].split("-")[1]
     for pack in data:
-        pack.show()
         for row in parse_rip_packet(pack, devs):
             intable, n = check_in_table(table, row)
             if intable:
@@ -94,8 +88,27 @@ for file in files:
                 table.append(row)
 # add the networks directly connected to the router
 for dev in devs:
-    table.append(["C", get_net_ip(dev, 28), 28, "directly", "connected", devs[dev]])
+    table.append(["C>*", get_net_ip(dev, 28), 28, "directly", "connected", devs[dev]])
 # sort the table by the network
 table.sort(key=lambda x: ip_to_int(x[1]))
-console.print(table)
 console.print(devs)
+rich_table = Table(show_lines=True, safe_box=True)
+rich_table.add_column("Type")
+rich_table.add_column("Network")
+rich_table.add_column("Mask")
+rich_table.add_column("Metric")
+rich_table.add_column("Next Hop")
+rich_table.add_column("dev")
+for row in table:
+    rich_table.add_row(*[str(x) for x in row])
+example = """R#show ip route
+R>* 192.168.0.16/28 [120/2] via 192.168.0.194, eth1
+R>* 192.168.0.48/28 [120/2] via 192.168.0.210, eth2
+R>* 192.168.0.112/28 [120/2] via 192.168.0.194, eth1
+R>* 192.168.0.128/28 [120/2] via 192.168.0.161, eth0
+C>* 192.168.0.160/28 is directly connected, eth0
+C>* 192.168.0.192/28 is directly connected, eth1
+C>* 192.168.0.208/28 is directly connected, eth2
+R>* 192.168.0.224/28 [120/2] via 192.168.0.210, eth2"""
+console.print(Panel.fit(example, title="Example", border_style="magenta"))
+console.print(rich_table)

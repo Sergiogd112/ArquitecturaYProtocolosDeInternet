@@ -1,0 +1,32 @@
+
+       OSPF Router with ID (10.0.0.33)
+
+
+                Net Link States (Area 0.0.0.0)
+
+  LS age: 146
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: network-LSA
+  Link State ID: 10.0.0.2 (address of Designated Router)
+  Advertising Router: 10.0.1.97
+  LS Seq Number: 80000001
+  Checksum: 0xe682
+  Length: 32
+  Network Mask: /27
+        Attached Router: 10.0.0.33
+        Attached Router: 10.0.1.97
+
+  LS age: 146
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: network-LSA
+  Link State ID: 10.0.0.66 (address of Designated Router)
+  Advertising Router: 10.0.2.34
+  LS Seq Number: 80000001
+  Checksum: 0x7035
+  Length: 32
+  Network Mask: /27
+        Attached Router: 10.0.0.33
+        Attached Router: 10.0.2.34
+

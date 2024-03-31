@@ -1,0 +1,25 @@
+
+       OSPF Router with ID (10.0.0.33)
+
+                Router Link States (Area 0.0.0.0)
+
+Link ID         ADV Router      Age  Seq#       CkSum  Link count
+10.0.0.33       10.0.0.33        120 0x80000008 0xc6e8 4
+10.0.1.2        10.0.1.2         156 0x80000003 0x0697 2
+10.0.1.97       10.0.1.97        121 0x80000004 0x4d08 1
+10.0.2.34       10.0.2.34        121 0x80000004 0xe95d 1
+
+                Net Link States (Area 0.0.0.0)
+
+Link ID         ADV Router      Age  Seq#       CkSum
+10.0.0.2        10.0.1.97        121 0x80000001 0xe682
+10.0.0.66       10.0.2.34        121 0x80000001 0x7035
+
+                Summary Link States (Area 0.0.0.0)
+
+Link ID         ADV Router      Age  Seq#       CkSum  Route
+10.0.1.0        10.0.1.2         111 0x80000003 0x998b 10.0.1.0/24
+10.0.1.0        10.0.1.97        111 0x80000002 0x5f67 10.0.1.0/24
+10.0.2.0        10.0.2.34        121 0x80000002 0x64a9 10.0.2.0/24
+
+
