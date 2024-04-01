@@ -17,6 +17,7 @@ pyvis = "^0.3.0"
 scipy = "^1.12.0"
 python-pcapng = "^2.1.1"
 scapy = "^2.5.0"
+pyyaml = "^6.0.1"
 
 
 [tool.poetry.group.dev.dependencies]
