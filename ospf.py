@@ -168,18 +168,17 @@ def list_to_tree(data: list, name: str) -> Tree:
 def load_console(routers, nets, areas, areas_routers, areas_nets):
     nrouters = len(routers)
     setrouters_names = []
-    area_router_names = {
-        "0.0.0.0": ["R03", "R04", "R05", "R06"],
-        "0.0.0.1": ["R04", "R06", "R07", "R08"],
-        "0.0.0.2": ["R01", "R02", "R03"],
-    }
+    area_router_names = {}  #
+                            # "0.0.0.0": ["R03", "R04", "R05", "R06"],
+                            # "0.0.0.1": ["R04", "R06", "R07", "R08"],
+                            # "0.0.0.2": ["R01", "R02", "R03"],
     ids_to_names = {}
-    # for area in areas:
-    #     print(f"Area: {area}")
-    #     routers_id_area = [
-    #         "R" + r.rjust(2, "0") for r in Prompt.ask("Routers").split(" ")
-    #     ]
-    #     area_router_names[area] = routers_id_area
+    for area in areas:
+        print(f"Area: {area}")
+        routers_id_area = [
+            "R" + r.rjust(2, "0") for r in Prompt.ask("Routers").split(" ")
+        ]
+        area_router_names[area] = routers_id_area
     Console().print(dict_to_tree(area_router_names, "Area routers"))
     # create a dict with the frontier routers with a tuple of the areas as key
     frontier_routers_names = {}
@@ -292,21 +291,19 @@ def load_console(routers, nets, areas, areas_routers, areas_nets):
 
         show_routers(routers, areas_routers)
         return routers,ids_to_names
-    stub_routers_names = {"0.0.0.0": ["R04"], "0.0.0.1": ["R04"], "0.0.0.2": ["R02"]}
-    non_stub_routers_names = {
-        "0.0.0.0": ["R06"],
-        "0.0.0.1": ["R06", "R07", "R08"],
-        "0.0.0.2": ["R01"],
-    }
-    # for n, area in enumerate(areas):
-    #     print(f"Area: {area}")
-    #     router_names = [
-    #         "R" + r.rjust(2, "0") for r in Prompt.ask("Stub routers").split(" ")
-    #     ]
-    #     stub_routers_names[area] = [r for r router_names if r not in setrouters_names]
-    #     non_stub_routers_names[area] = [
-    #         r for r in area_router_names[area] if r not in router_names and r not in setrouters_names
-    #     ]
+    stub_routers_names = {}#"0.0.0.0": ["R04"], "0.0.0.1": ["R04"], "0.0.0.2": ["R02"]
+    non_stub_routers_names = {}#"0.0.0.0": ["R06"],
+                                # "0.0.0.1": ["R06", "R07", "R08"],
+                                # "0.0.0.2": ["R01"],
+    for n, area in enumerate(areas):
+        print(f"Area: {area}")
+        router_names = [
+            "R" + r.rjust(2, "0") for r in Prompt.ask("Stub routers").split(" ")
+        ]
+        stub_routers_names[area] = [r for r in router_names if r not in setrouters_names]
+        non_stub_routers_names[area] = [
+            r for r in area_router_names[area] if r not in router_names and r not in setrouters_names
+        ]
     Console().print(stub_routers_names)
     Console().print(non_stub_routers_names)
     stub_routers_ids = {}
