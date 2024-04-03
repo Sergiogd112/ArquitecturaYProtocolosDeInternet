@@ -501,7 +501,7 @@ def run():
 
     console = Console()
 
-    folder = os.path.join("MQ", "Fitxers (exemple 2)-20240331", "Ex2-db")
+    folder = os.path.join("MQ", "2324QP", "Ex-OSPF-20240403")
 
     routers = {}
     nets = {}
@@ -531,11 +531,12 @@ def run():
     columns = Columns()
 
     show_routers(routers, area_routers)
-    print("=====================================")
-    routers,ids_to_names=load_console(routers, nets, list(area_routers.keys()), area_routers, area_nets)
     show_nets(nets, area_nets)
-    print("=====================================")
-    print(ids_to_names)
-    show_routers(routers, area_routers)
+    # print("=====================================")
+    # routers,ids_to_names=load_console(routers, nets, list(area_routers.keys()), area_routers, area_nets)
+    # show_nets(nets, area_nets)
+    # print("=====================================")
+    # print(ids_to_names)
+    # show_routers(routers, area_routers)
 
 run()

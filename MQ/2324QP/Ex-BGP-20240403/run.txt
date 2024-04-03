@@ -1,0 +1,438 @@
+R01# show run
+Building configuration...
+
+Current configuration:
+!
+!
+interface eth0
+ ip address 10.0.0.1/30
+!
+interface eth1
+ ip address 175.0.0.1/28
+!
+interface eth2
+ ip address 175.0.0.33/28
+!
+interface lo
+!
+router bgp 78
+ bgp router-id 192.168.0.1
+ network 175.0.0.0/16
+ neighbor 10.0.0.2 remote-as 40
+ neighbor 10.0.0.2 route-map RMAP in
+ neighbor 175.0.0.2 remote-as 78
+ neighbor 175.0.0.18 remote-as 78
+!
+ address-family ipv6
+ exit-address-family
+ exit
+!
+router ospf
+ passive-interface eth0
+ network 10.0.0.0/30 area 0.0.0.0
+ network 175.0.0.0/28 area 0.0.0.0
+ network 175.0.0.32/28 area 0.0.0.0
+!
+access-list MATCH permit 64.0.0.0/2
+!
+route-map RMAP permit 10
+ match ip address MATCH
+ set local-preference 120
+!
+route-map RMAP permit 20
+!
+ip forwarding
+!
+line vty
+!
+end
+
+
+R02# show run
+Building configuration...
+
+Current configuration:
+!
+!
+interface eth0
+ ip address 10.0.0.5/30
+!
+interface eth1
+ ip address 175.0.0.2/28
+!
+interface eth2
+ ip address 175.0.0.17/28
+!
+interface eth3
+ ip address 175.0.0.49/28
+!
+interface lo
+!
+router bgp 78
+ bgp router-id 192.168.0.5
+ network 175.0.0.0/16
+ neighbor 10.0.0.6 remote-as 40
+ neighbor 10.0.0.6 route-map RMAP in
+ neighbor 175.0.0.1 remote-as 78
+ neighbor 175.0.0.18 remote-as 78
+!
+ address-family ipv6
+ exit-address-family
+ exit
+!
+router ospf
+ passive-interface eth0
+ network 10.0.0.0/30 area 0.0.0.0
+ network 175.0.0.0/28 area 0.0.0.0
+ network 175.0.0.16/28 area 0.0.0.0
+ network 175.0.0.48/28 area 0.0.0.0
+!
+access-list MATCH permit 64.0.0.0/2
+!
+route-map RMAP permit 10
+ match ip address MATCH
+ set local-preference 50
+!
+route-map RMAP permit 20
+!
+ip forwarding
+!
+line vty
+!
+end
+
+
+R03# show run
+Building configuration...
+
+Current configuration:
+!
+!
+interface eth0
+ ip address 10.0.0.9/30
+!
+interface eth1
+ ip address 175.0.0.18/28
+!
+interface eth2
+ ip address 175.0.0.65/28
+!
+interface lo
+!
+router bgp 78
+ bgp router-id 192.168.0.9
+ network 175.0.0.0/16
+ neighbor 10.0.0.10 remote-as 18
+ neighbor 175.0.0.1 remote-as 78
+ neighbor 175.0.0.17 remote-as 78
+!
+ address-family ipv6
+ exit-address-family
+ exit
+!
+router ospf
+ passive-interface eth0
+ network 10.0.0.8/30 area 0.0.0.0
+ network 175.0.0.16/28 area 0.0.0.0
+ network 175.0.0.64/28 area 0.0.0.0
+!
+ip forwarding
+!
+line vty
+!
+end
+
+
+R04# show run
+Building configuration...
+
+Current configuration:
+!
+!
+interface eth0
+ ip address 10.0.0.10/30
+!
+interface eth1
+ ip address 10.0.0.13/30
+!
+interface eth2
+ ip address 10.0.0.21/30
+!
+interface eth3
+ ip address 91.0.0.1/28
+!
+interface lo
+!
+router bgp 18
+ bgp router-id 10.0.0.21
+ network 91.0.0.0/16
+ neighbor 10.0.0.9 remote-as 78
+ neighbor 10.0.0.14 remote-as 125
+ neighbor 10.0.0.14 route-map RMAP in
+ neighbor 10.0.0.22 remote-as 125
+!
+ address-family ipv6
+ exit-address-family
+ exit
+!
+router ospf
+ passive-interface eth0
+ passive-interface eth1
+ passive-interface eth2
+ network 10.0.0.8/30 area 0.0.0.0
+ network 10.0.0.12/30 area 0.0.0.0
+ network 10.0.0.20/30 area 0.0.0.0
+ network 91.0.0.0/28 area 0.0.0.0
+!
+access-list MATCH permit 66.0.0.0/16
+!
+route-map RMAP permit 10
+ match ip address MATCH
+ set weight 80
+!
+route-map RMAP permit 20
+!
+ip forwarding
+!
+line vty
+!
+end
+
+
+R05# show run
+Building configuration...
+
+Current configuration:
+!
+!
+interface eth0
+ ip address 10.0.0.14/30
+!
+interface eth1
+ ip address 66.0.0.1/28
+!
+interface eth2
+ ip address 66.0.0.33/28
+!
+interface eth3
+ ip address 66.0.0.81/28
+!
+interface lo
+!
+router bgp 125
+ bgp router-id 10.0.0.14
+ network 66.0.0.0/16
+ neighbor 10.0.0.13 remote-as 18
+ neighbor 66.0.0.2 remote-as 125
+ neighbor 66.0.0.82 remote-as 125
+!
+ address-family ipv6
+ exit-address-family
+ exit
+!
+router ospf
+ passive-interface eth0
+ network 10.0.0.12/30 area 0.0.0.0
+ network 66.0.0.0/28 area 0.0.0.0
+ network 66.0.0.32/28 area 0.0.0.0
+ network 66.0.0.80/28 area 0.0.0.0
+!
+ip forwarding
+!
+line vty
+!
+end
+
+
+R06# show run
+Building configuration...
+
+Current configuration:
+!
+!
+interface eth0
+ ip address 10.0.0.22/30
+!
+interface eth1
+ ip address 66.0.0.17/28
+!
+interface eth2
+ ip address 66.0.0.2/28
+!
+interface eth3
+ ip address 66.0.0.49/28
+!
+interface lo
+!
+router bgp 125
+ bgp router-id 10.0.0.22
+ network 66.0.0.0/16
+ neighbor 10.0.0.21 remote-as 18
+ neighbor 66.0.0.1 remote-as 125
+ neighbor 66.0.0.18 remote-as 125
+!
+ address-family ipv6
+ exit-address-family
+ exit
+!
+router ospf
+ passive-interface eth0
+ network 10.0.0.20/30 area 0.0.0.0
+ network 66.0.0.0/28 area 0.0.0.0
+ network 66.0.0.16/28 area 0.0.0.0
+ network 66.0.0.48/28 area 0.0.0.0
+!
+ip forwarding
+!
+line vty
+!
+end
+
+
+R07# show run
+Building configuration...
+
+Current configuration:
+!
+!
+interface eth0
+ ip address 10.0.0.17/30
+!
+interface eth1
+ ip address 66.0.0.18/28
+!
+interface eth2
+ ip address 66.0.0.65/28
+!
+interface eth3
+ ip address 66.0.0.82/28
+!
+interface lo
+!
+router bgp 125
+ bgp router-id 10.0.0.17
+ network 66.0.0.0/16
+ neighbor 10.0.0.18 remote-as 40
+ neighbor 66.0.0.17 remote-as 125
+ neighbor 66.0.0.81 remote-as 125
+!
+ address-family ipv6
+ exit-address-family
+ exit
+!
+router ospf
+ passive-interface eth0
+ network 10.0.0.16/30 area 0.0.0.0
+ network 66.0.0.16/28 area 0.0.0.0
+ network 66.0.0.64/28 area 0.0.0.0
+ network 66.0.0.80/28 area 0.0.0.0
+!
+ip forwarding
+!
+line vty
+!
+end
+
+
+R08# show run
+Building configuration...
+
+Current configuration:
+!
+!
+interface eth0
+ ip address 10.0.0.2/30
+!
+interface eth1
+ ip address 10.0.0.6/30
+!
+interface eth2
+ ip address 38.0.0.1/28
+!
+interface eth3
+ ip address 38.0.0.17/28
+!
+interface lo
+!
+router bgp 40
+ bgp router-id 10.0.0.5
+ network 38.0.0.0/16
+ neighbor 10.0.0.1 remote-as 78
+ neighbor 10.0.0.1 route-map RMAP1 out
+ neighbor 10.0.0.5 remote-as 78
+ neighbor 10.0.0.5 route-map RMAP2 out
+ neighbor 38.0.0.2 remote-as 40
+!
+ address-family ipv6
+ exit-address-family
+ exit
+!
+router ospf
+ passive-interface eth0
+ passive-interface eth1
+ network 10.0.0.0/30 area 0.0.0.0
+ network 10.0.0.4/30 area 0.0.0.0
+ network 38.0.0.0/28 area 0.0.0.0
+ network 38.0.0.16/28 area 0.0.0.0
+!
+access-list MATCH permit any
+!
+route-map RMAP1 permit 10
+ match ip address MATCH
+ set metric 9
+!
+route-map RMAP1 permit 20
+!
+route-map RMAP2 permit 10
+ match ip address MATCH
+ set metric 5
+!
+route-map RMAP2 permit 20
+!
+ip forwarding
+!
+line vty
+!
+end
+
+
+R09# show run
+Building configuration...
+
+Current configuration:
+!
+!
+interface eth0
+ ip address 10.0.0.18/30
+!
+interface eth1
+ ip address 38.0.0.2/28
+!
+interface eth2
+ ip address 38.0.0.33/28
+!
+interface lo
+!
+router bgp 40
+ bgp router-id 10.0.0.18
+ network 38.0.0.0/16
+ neighbor 10.0.0.17 remote-as 125
+ neighbor 38.0.0.1 remote-as 40
+!
+ address-family ipv6
+ exit-address-family
+ exit
+!
+router ospf
+ passive-interface eth0
+ network 10.0.0.16/30 area 0.0.0.0
+ network 38.0.0.0/28 area 0.0.0.0
+ network 38.0.0.32/28 area 0.0.0.0
+!
+ip forwarding
+!
+line vty
+!
+end
+
+

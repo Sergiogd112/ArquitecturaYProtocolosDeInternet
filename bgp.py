@@ -168,7 +168,7 @@ class BGP_table:
 
 
 console = Console()
-file = os.path.join("MQ", "Fitxers-20240325", "Ex3-updates.pcapng")
+file = os.path.join("MQ", "2324QP","Ex-BGP-20240403", "captura-bgp.pcapng")
 capt = rdpcap(file)
 ips = set()
 for pack in capt:

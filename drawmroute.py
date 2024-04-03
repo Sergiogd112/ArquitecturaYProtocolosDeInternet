@@ -57,7 +57,7 @@ def net_from_console():
     ippref = Prompt.ask("Enter IP prefix", default="10.0.")
     submask = IntPrompt.ask("Enter subnet mask", default=24)
     for i in range(nrouter):
-        router = Prompt.ask(f"Enter router name {i+1}", default=f"R{i+1}")
+        router = Prompt.ask(f"Enter router name {i+1}", default=f"R0{i+1}")
         routers[router] = {}
         nint = IntPrompt.ask(f"Enter number of interfaces for {router}", default=1)
         for j in range(nint):
@@ -819,7 +819,7 @@ def test():
     # console.print(net2)
     # TODO
     routers, sources, nets = read_mroutes(
-        os.path.join("MQ", "Fitxers-20240325", "Ex4-mroute.txt")
+        os.path.join("MQ", "2324QP", "Ex-PIM-20240403","mroute.txt")
     )
     # print_routers(routers)
     print(sources)

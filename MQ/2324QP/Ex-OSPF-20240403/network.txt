@@ -1,0 +1,54 @@
+                Net Link States (Area 0.0.0.0)
+
+  LS age: 73
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x3  
+  LS Type: network-LSA
+  Link State ID: 10.0.11.1 (address of Designated Router)
+  Advertising Router: 10.0.11.49
+  LS Seq Number: 80000001
+  Checksum: 0x02ad
+  Length: 32
+  Network Mask: /28
+        Attached Router: 10.0.11.49
+        Attached Router: 10.0.11.2
+
+  LS age: 73
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x3  
+  LS Type: network-LSA
+  Link State ID: 10.0.11.17 (address of Designated Router)
+  Advertising Router: 10.0.11.49
+  LS Seq Number: 80000001
+  Checksum: 0x235c
+  Length: 32
+  Network Mask: /28
+        Attached Router: 10.0.11.49
+        Attached Router: 10.0.11.34
+
+  LS age: 69
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: network-LSA
+  Link State ID: 10.0.11.33 (address of Designated Router)
+  Advertising Router: 10.0.11.65
+  LS Seq Number: 80000001
+  Checksum: 0xc28c
+  Length: 32
+  Network Mask: /28
+        Attached Router: 10.0.11.65
+        Attached Router: 10.0.11.34
+
+  LS age: 79
+  Options: 0x2  : *|-|-|-|-|-|E|-
+  LS Flags: 0x6  
+  LS Type: network-LSA
+  Link State ID: 10.0.11.50 (address of Designated Router)
+  Advertising Router: 10.0.11.65
+  LS Seq Number: 80000001
+  Checksum: 0x2b04
+  Length: 32
+  Network Mask: /28
+        Attached Router: 10.0.11.49
+        Attached Router: 10.0.11.65
+
