@@ -1,0 +1,19 @@
+!
+interface eth0
+  ipv6 address 2150:1::2/64
+!
+interface eth1
+  ipv6 address 2150:5::1/64
+!
+interface eth2
+  ipv6 address 2150:4::1/64
+!
+interface eth3
+  ipv6 address 2150:2::1/64
+!
+!
+!
+!
+!
+ip forwarding
+ipv6 forwarding

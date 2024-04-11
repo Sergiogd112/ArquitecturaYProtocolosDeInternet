@@ -1,0 +1,23 @@
+#!/bin/bash
+num_routers=13
+num_pcs=7
+num_bridges=25
+folder=P06/P06-E01
+
+count_dirs () {
+    dir=$1   
+    regexp=$2
+    wc -l < <( awk '{print $NF}' < <(ls -l $dir) | grep -P $regexp )
+}
+
+routers=$(count_dirs "/var/lib/lxc/" "^R[0-9]{2}$")
+pcs=$(count_dirs "/var/lib/lxc/" "^PC[0-9]{2}$")
+05-stop-containers $routers $pcs
+06-clean-quagga-files $routers
+02-copy-files $num_routers /home/api/practiques/$folder/config_files_zebra_$(printf "PC%d" 1) z
+02-copy-files-PCs $num_pcs /home/api/practiques/$folder/config_files_zebra_$(printf "PC%d" 1) z
+03-create-bridges $num_bridges
+04-start-containers $num_routers $num_pcs
+04-rp-filter $num_routers $num_pcs
+echo "Done!"
+

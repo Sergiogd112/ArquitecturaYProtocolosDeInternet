@@ -1,0 +1,9 @@
+#!/bin/bash
+total=$1
+for ((i=1; i<=$total; i++)); do
+    dir=/sys/class/net/$(printf "br%02d" $i)
+    if [[ -d "$dir" ]]; then
+        ip link set dev $(printf "br%02d" $i) down
+        brctl delbr $(printf "br%02d" $i)
+    fi
+done

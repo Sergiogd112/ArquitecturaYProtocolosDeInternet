@@ -1,0 +1,14 @@
+!
+interface eth0
+  ipv6 address 2120:1::2/64
+!
+interface eth1
+  ipv6 address 2120:2::1/64
+!
+!
+!
+!
+!
+!
+ip forwarding
+ipv6 forwarding

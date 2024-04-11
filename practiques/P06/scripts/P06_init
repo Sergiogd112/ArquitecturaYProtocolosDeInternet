@@ -1,0 +1,23 @@
+#!/bin/bash
+count_dirs () {
+    dir=$1   
+    regexp=$2
+    wc -l < <( awk '{print $NF}' < <(ls -l $dir) | grep -P $regexp )
+}
+if [ -d /home/api/router_files ]
+ then rm -R /home/api/router_files
+fi
+mkdir /home/api/router_files
+routers=$(count_dirs "/var/lib/lxc/" "^R[0-9]{2}$")
+for ((i=1; i<=$routers; i++)); do
+    folder=/home/api/router_files/$(printf "R%02d" $i)
+    if [ ! -d $folder ]
+      then mkdir $folder
+    fi
+done
+if [ -d /home/api/db ]
+ then rm -R /home/api/db
+fi
+mkdir /home/api/db
+cp /home/api/practiques/scripts/P06-db-* /home/api/db/
+chmod 666 /home/api/db/*

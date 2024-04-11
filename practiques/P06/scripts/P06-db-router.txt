@@ -1,0 +1,68 @@
+
+        Area Scoped Link State Database (Area 0.0.0.0)
+
+Age: 1673 Type: Router
+Link State ID: 0.0.0.0
+Advertising Router: 0.0.0.9
+LS Sequence Number: 0x80000007
+CheckSum: 0xcf84 Length: 40
+Duration: 00:27:53
+    Bits: ------E- Options: --|R|-|--|E|V6
+    Type: Transit-Network Metric: 10
+    Interface ID: 0.0.0.82
+    Neighbor Interface ID: 0.0.0.84
+    Neighbor Router ID: 0.0.0.10
+
+Age: 1672 Type: Router
+Link State ID: 0.0.0.0
+Advertising Router: 0.0.0.10
+LS Sequence Number: 0x80000008
+CheckSum: 0x84fa Length: 72
+Duration: 00:27:51
+    Bits: -------- Options: --|R|-|--|E|V6
+    Type: Transit-Network Metric: 10
+    Interface ID: 0.0.0.84
+    Neighbor Interface ID: 0.0.0.84
+    Neighbor Router ID: 0.0.0.10
+    Type: Transit-Network Metric: 10
+    Interface ID: 0.0.0.88
+    Neighbor Interface ID: 0.0.0.100
+    Neighbor Router ID: 0.0.0.12
+    Type: Transit-Network Metric: 10
+    Interface ID: 0.0.0.90
+    Neighbor Interface ID: 0.0.0.106
+    Neighbor Router ID: 0.0.0.13
+
+Age: 1673 Type: Router
+Link State ID: 0.0.0.0
+Advertising Router: 0.0.0.12
+LS Sequence Number: 0x80000007
+CheckSum: 0xab87 Length: 56
+Duration: 00:27:51
+    Bits: -------- Options: --|R|-|--|E|V6
+    Type: Transit-Network Metric: 10
+    Interface ID: 0.0.0.100
+    Neighbor Interface ID: 0.0.0.100
+    Neighbor Router ID: 0.0.0.12
+    Type: Transit-Network Metric: 10
+    Interface ID: 0.0.0.102
+    Neighbor Interface ID: 0.0.0.108
+    Neighbor Router ID: 0.0.0.13
+
+Age: 1669 Type: Router
+Link State ID: 0.0.0.0
+Advertising Router: 0.0.0.13
+LS Sequence Number: 0x80000007
+CheckSum: 0x31ed Length: 56
+Duration: 00:27:46
+    Bits: -------- Options: --|R|-|--|E|V6
+    Type: Transit-Network Metric: 10
+    Interface ID: 0.0.0.106
+    Neighbor Interface ID: 0.0.0.106
+    Neighbor Router ID: 0.0.0.13
+    Type: Transit-Network Metric: 10
+    Interface ID: 0.0.0.108
+    Neighbor Interface ID: 0.0.0.108
+    Neighbor Router ID: 0.0.0.13
+
+

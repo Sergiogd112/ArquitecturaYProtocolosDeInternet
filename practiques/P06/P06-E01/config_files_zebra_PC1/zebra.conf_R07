@@ -1,0 +1,23 @@
+!
+interface eth0
+  ip address 10.0.0.10/30
+!
+interface eth1
+  ip address 10.0.0.13/30
+!
+interface eth2
+  ip address 10.0.0.37/30
+!
+interface eth3
+  ipv6 address 2140:1::1/64
+!
+interface lo
+  ip address 1.1.7.7/32
+!
+!
+ipv6 route ::/0 eth0
+!
+!
+!
+ip forwarding
+ipv6 forwarding

@@ -1,0 +1,19 @@
+interface eth0
+!
+interface eth1
+!
+interface eth2
+!
+interface eth3
+!
+!
+!
+!
+router ospf6
+ router-id 0.0.0.10
+ interface eth0 area 0.0.0.0
+ interface eth1 area 0.0.0.0
+ interface eth2 area 0.0.0.0
+ interface eth3 area 0.0.0.0
+!
+

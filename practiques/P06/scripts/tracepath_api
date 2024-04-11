@@ -1,0 +1,174 @@
+#!/bin/bash
+
+# usage function
+usage () {
+  echo "tracepath_api -r ROUTER -d DESTINATION_ADDRESS [-s SSH_ADDRESS] [-h]"
+}
+
+# process command line arguments
+# uncomment every line between lines -> process cmd line arguments
+#------------------------------------------------------------------------------
+#while getopts ":r:d:s:h" opt; do
+#  case $opt in
+#    r) ROUTER="$OPTARG";;
+#    d) DESTINATION_ADDRESS="$OPTARG";;
+#    a) ssh_address="$OPTARG";;
+#    h | [?]) usage ; exit;;
+#  esac
+#done
+#shift "$(($OPTIND -1))"
+#if [ -z "$ROUTER" ] || [ -z "$DESTINATION_ADDRESS" ]; then usage ; exit 1 ; fi
+#------------------------------------------------------------------------------
+
+# comment every line between lines -> process cmd line args
+#------------------------------------------------------------------------------
+ROUTER=$1
+DESTINATION_ADDRESS=$2
+SSH_ADDRESS=$3
+#------------------------------------------------------------------------------
+
+# ????
+function print_summary () {
+    echo "*** PATH SUMMARY ***"
+    echo "$SUMMARY"
+    exit 0
+}
+
+# get_address_router_map
+#
+# Create a map key-->IP value-->Router from lxc-ls
+# The map is stored in address_router_map variable
+function get_address_router_map () {
+    lxc_list=$(lxc-ls -f | grep RUNNING | awk '{$2=$3=""; print $0}' | awk -F '[-|-]' '{printf "%s %s\n",$1,$2}' | sed 's/,//g')
+    # declare -A address_router_map
+    while IFS= read -r line
+    do
+        r=$(awk '{print $1}' < <(echo $line))
+        line=${line//$r/}
+        IFS=' '
+        for word in $line
+        do 
+            address_router_map[$word]=$r
+        done
+    done < <(printf '%s\n' "$lxc_list")
+}
+
+# process_fib_entries
+#
+# TODO: COMMENT
+function process_fib_entries () {
+	while read -r line
+	do
+		first_col=$(awk '{ print $1 }' < <(echo $line))
+		if [[ ${first_col} =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))? ]] # First col is a prefix
+		then
+			second_col=$(awk '{ print $2 }' < <(echo $line))
+			if [ "$second_col" == "via" ]	# single path
+			then 
+				awk '{printf "%8c%-18s\t%-15s\t%s\n"," ",$1,$3,$5}'< <(echo "$line")
+			else							# multipath 
+				col=$first_col #$(printf "%8c%-18s\t" " " "$first_col")			
+			fi
+		else 
+			awk -v col="$col" '{printf "%8c%-18s\t%-15s\t%s\n"," ",col,$3,$5}'< <(echo "$line")
+			col=""
+		fi
+	done < <(echo "$1")
+}
+
+# get_next_hop
+#
+# TODO: COMMENT
+function get_next_hop () {
+	router=$1
+	printf "%s\n" $router
+	if [ -z "$nh" ] 
+	then 
+		SUMMARY=$SUMMARY$ROUTER
+	else
+		SUMMARY=$SUMMARY"  --> "$ROUTER"("$nh")"
+	fi	
+	printf "%4cMatching FIB entries:\n" " "
+	fib_entries=$(lxc-attach -n $router -- ip route list match $DESTINATION_ADDRESS)
+	next_hop=$(lxc-attach -n $router -- ip route get $DESTINATION_ADDRESS | sed '$ d')
+	dc=$(awk '{print $1}'< <(echo $next_hop))
+	if [ ! "$dc" == "local" ]	# if it's not one of the router IP addresses
+	then
+		sp=$(awk '{print $2}'< <(echo $next_hop))   
+		if [ $sp == "via" ]		# destination address is not in one of the dc networks	
+        then 
+            #awk '{printf "%8c%s\t%s\t%s\n"," ",$1,$3,$5}'< <(echo $fib_entries)
+			process_fib_entries "$fib_entries"            
+			nh=$(awk '{print $3}' < <(echo $next_hop))
+        else					# destination address is in one of the dc networks
+	    awk '{printf "%8c%s\t0.0.0.0\tdirectly connected\n"," ",$1}'< <(echo $fib_entries)
+    	    nh="0.0.0.0"
+        fi
+	else						# it's one of the router IP addresses
+		awk '{printf "%8c%s\t0.0.0.0\tdirectly connected\n"," ",$1}'< <(echo $fib_entries)
+		nh="0.0.0.0"
+	fi
+	printf "\n%4cNext Hop: %s\n\n" " " $nh
+	
+	if [ "$nh" == "0.0.0.0" ]
+    then
+        if [ ! "$dc" == "local" ] 
+			then SUMMARY=$SUMMARY" --> "$DESTINATION_ADDRESS" (Destination Address)"
+			else SUMMARY=$SUMMARY" --> "$DESTINATION_ADDRESS" (Destination Address - local)"
+		fi
+		if [ ! -z $SSH_ADDRESS ]	# I'm not in the remote scenario part       
+		then 
+			print_summary
+        else
+            echo $SUMMARY > /tmp/path.tmp
+        fi
+    fi
+}
+
+### DEBUG FUNCTIONS (dump_) ###
+function dump_address_router_map () {
+	for i in "${!address_router_map[@]}"
+	do
+	  echo -n "$i --> "
+	  echo "${address_router_map[$i]}"
+	done
+}
+
+### MAIN SCRIPT ###
+declare -A address_router_map
+get_address_router_map
+
+get_next_hop $ROUTER
+
+jump=false
+while [ "$jump" = false ]
+do
+	ROUTER=${address_router_map[$nh]}
+	get_next_hop $ROUTER
+	if [ ! ${address_router_map[$nh]+o} ]
+		then
+		    jump=true
+		fi
+done
+
+if [ ! -z $SSH_ADDRESS ] # Jump to remote scenario part
+then
+    remote_cmd="lxc-ls -f | grep "$nh" | awk '{print \$1}'"
+    router_name=$(sshpass -p "telematica" ssh -o StrictHostKeyChecking=no root@$SSH_ADDRESS $remote_cmd)
+    remote_cmd="/home/api/practiques/scripts/tracepath_api "$router_name" "$DESTINATION_ADDRESS
+    sshpass -p "telematica" ssh -o StrictHostKeyChecking=no root@$SSH_ADDRESS $remote_cmd
+    remote_cmd="cat /tmp/path.tmp"
+    remote_path=$(sshpass -p "telematica" ssh -o StrictHostKeyChecking=no root@$SSH_ADDRESS $remote_cmd)
+    SUMMARY=$SUMMARY" --> "
+    regexp="s/^\("$router_name"\)/\1("$nh")/"
+    remote=$(sed $regexp < <(echo "$remote_path"))
+    SUMMARY=$SUMMARY$remote
+	print_summary    
+fi
+
+
+
+
+
+
+

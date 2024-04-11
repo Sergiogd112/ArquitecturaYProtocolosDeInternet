@@ -1,0 +1,24 @@
+#!/bin/bash
+prefix="101"
+
+# illa 1
+lxc-attach -n R01 -- ip -6 addr add 2002:$prefix:0101:1::1/64 dev eth2
+lxc-attach -n R02 -- ip -6 addr add 2002:$prefix:0101:1::2/64 dev eth0
+lxc-attach -n R02 -- ip -6 addr add 2002:$prefix:0101:2::1/64 dev eth1
+lxc-attach -n PC01 -- ip -6 addr add 2002:$prefix:0101:2::2/64 dev eth0
+# illa 2
+lxc-attach -n R03 -- ip -6 addr add 2002:$prefix:0303:1::1/64 dev eth3
+lxc-attach -n R04 -- ip -6 addr add 2002:$prefix:0303:1::2/64 dev eth0
+lxc-attach -n R04 -- ip -6 addr add 2002:$prefix:0303:2::1/64 dev eth1
+lxc-attach -n PC02 -- ip -6 addr add 2002:$prefix:0303:2::2/64 dev eth0
+# illa 3
+lxc-attach -n R05 -- ip -6 addr add 2002:$prefix:0505:1::1/64 dev eth2
+lxc-attach -n R06 -- ip -6 addr add 2002:$prefix:0505:1::2/64 dev eth0
+lxc-attach -n R06 -- ip -6 addr add 2002:$prefix:0505:2::1/64 dev eth1
+lxc-attach -n PC03 -- ip -6 addr add 2002:$prefix:0505:2::2/64 dev eth0
+# illa 4
+lxc-attach -n R07 -- ip -6 addr add 2002:$prefix:0707:1::1/64 dev eth3
+lxc-attach -n R08 -- ip -6 addr add 2002:$prefix:0707:1::2/64 dev eth0
+lxc-attach -n R08 -- ip -6 addr add 2002:$prefix:0707:2::1/64 dev eth1
+lxc-attach -n PC04 -- ip -6 addr add 2002:$prefix:0707:2::2/64 dev eth0
+

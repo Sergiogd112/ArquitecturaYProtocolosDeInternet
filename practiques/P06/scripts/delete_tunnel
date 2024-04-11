@@ -1,0 +1,4 @@
+#!/bin/bash
+lxc-attach -n $1 -- ip -6 route flush dev $2
+lxc-attach -n $1 -- ip link set dev $2 down
+lxc-attach -n $1 -- ip tunnel del $2

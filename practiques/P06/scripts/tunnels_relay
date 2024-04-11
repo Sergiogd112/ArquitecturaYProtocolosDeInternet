@@ -1,0 +1,27 @@
+#!/bin/bash
+
+pref="1.1"
+num=1
+lxc-attach -n R01 -- ip tunnel add tun mode sit ttl 64 remote any local "$pref".1.1
+lxc-attach -n R01 -- ip link set dev tun up
+lxc-attach -n R01 -- ip -6 route add 2000::/3 via ::192.88.99.1 dev tun
+lxc-attach -n R03 -- ip tunnel add tun mode sit ttl 64 remote any local "$pref".3.3
+lxc-attach -n R03 -- ip link set dev tun up
+lxc-attach -n R03 -- ip -6 route add 2000::/3 via ::192.88.99.1 dev tun
+lxc-attach -n R05 -- ip tunnel add tun mode sit ttl 64 remote any local "$pref".5.5
+lxc-attach -n R05 -- ip link set dev tun up
+lxc-attach -n R05 -- ip -6 route add 2000::/3 via ::192.88.99.1 dev tun
+lxc-attach -n R07 -- ip tunnel add tun mode sit ttl 64 remote any local "$pref".7.7
+lxc-attach -n R07 -- ip link set dev tun up
+lxc-attach -n R07 -- ip -6 route add 2000::/3 via ::192.88.99.1 dev tun
+lxc-attach -n R09 -- ip tunnel add tun mode sit ttl 64 remote any local "$pref".9.9
+lxc-attach -n R09 -- ip link set dev tun up
+lxc-attach -n R09 -- ip -6 route add 2000::/3 via ::192.88.99.1 dev tun
+lxc-attach -n R11 -- ip tunnel add tun mode sit ttl 64 remote any local 192.88.99.1
+lxc-attach -n R11 -- ip link set dev tun up
+lxc-attach -n R11 -- ip -6 route add 2"$num"10::/16 via ::"$pref".1.1 dev tun
+lxc-attach -n R11 -- ip -6 route add 2"$num"20::/16 via ::"$pref".3.3 dev tun        
+lxc-attach -n R11 -- ip -6 route add 2"$num"30::/16 via ::"$pref".5.5 dev tun
+lxc-attach -n R11 -- ip -6 route add 2"$num"40::/16 via ::"$pref".7.7 dev tun	
+lxc-attach -n R11 -- ip -6 route add 2"$num"50::/16 via ::"$pref".9.9 dev tun
+

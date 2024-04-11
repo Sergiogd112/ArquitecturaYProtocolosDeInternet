@@ -1,0 +1,44 @@
+
+        Area Scoped Link State Database (Area 0.0.0.0)
+
+Age: 1679 Type: Network
+Link State ID: 0.0.0.84
+Advertising Router: 0.0.0.10
+LS Sequence Number: 0x80000005
+CheckSum: 0x8330 Length: 32
+Duration: 00:27:57
+     Options: --|R|-|--|E|V6
+     Attached Router: 0.0.0.10
+     Attached Router: 0.0.0.9
+
+Age: 1679 Type: Network
+Link State ID: 0.0.0.100
+Advertising Router: 0.0.0.12
+LS Sequence Number: 0x80000005
+CheckSum: 0xf8a5 Length: 32
+Duration: 00:27:56
+     Options: --|R|-|--|E|V6
+     Attached Router: 0.0.0.12
+     Attached Router: 0.0.0.10
+
+Age: 1674 Type: Network
+Link State ID: 0.0.0.106
+Advertising Router: 0.0.0.13
+LS Sequence Number: 0x80000005
+CheckSum: 0xc0d5 Length: 32
+Duration: 00:27:51
+     Options: --|R|-|--|E|V6
+     Attached Router: 0.0.0.13
+     Attached Router: 0.0.0.10
+
+Age: 1678 Type: Network
+Link State ID: 0.0.0.108
+Advertising Router: 0.0.0.13
+LS Sequence Number: 0x80000005
+CheckSum: 0xc8c9 Length: 32
+Duration: 00:27:56
+     Options: --|R|-|--|E|V6
+     Attached Router: 0.0.0.13
+     Attached Router: 0.0.0.12
+
+

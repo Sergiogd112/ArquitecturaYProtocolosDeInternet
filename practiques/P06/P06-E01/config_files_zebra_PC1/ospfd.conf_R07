@@ -1,0 +1,18 @@
+interface eth0
+!
+interface eth1
+!
+interface eth2
+!
+interface eth3
+!
+!
+!
+router ospf
+ router-id 1.0.0.7
+ network 10.0.0.8/30 area 0.0.0.0
+ network 10.0.0.12/30 area 0.0.0.0
+ network 10.0.0.36/30 area 0.0.0.0
+ network 1.1.7.0/24 area 0.0.0.0
+!
+

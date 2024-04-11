@@ -1,0 +1,8 @@
+#!/bin/bash
+P06-E01-start-zebra
+echo ""
+P06-E01-start-int
+echo ""
+lxc-stop -n PC01
+rm /var/lib/lxc/PC01/rootfs/etc/quagga/zebra.conf
+lxc-start -n PC01

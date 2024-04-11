@@ -1,0 +1,9 @@
+#!/bin/bash
+
+lxc-attach -n R01 -- ip tunnel add sit1 mode sit ttl 64 remote 1.1.9.9 local 1.1.1.1
+lxc-attach -n R01 -- ip link set dev sit1 up
+lxc-attach -n R01 -- ip -6 route add 2150::/16 dev sit1
+lxc-attach -n R09 -- ip tunnel add sit1 mode sit ttl 64 remote 1.1.1.1 local 1.1.9.9
+lxc-attach -n R09 -- ip link set dev sit1 up
+lxc-attach -n R09 -- ip -6 route add 2110::/16 dev sit1
+

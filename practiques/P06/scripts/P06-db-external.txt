@@ -1,0 +1,16 @@
+
+        AS Scoped Link State Database
+
+Age:  199 Type: AS-External
+Link State ID: 0.0.0.0
+Advertising Router: 0.0.0.9
+LS Sequence Number: 0x80000005
+CheckSum: 0x69a5 Length: 28
+Duration: 00:03:18
+     Bits: ---
+     Metric:     0
+     Prefix Options: xxx
+     Referenced LSType: 0
+     Prefix: ::
+
+

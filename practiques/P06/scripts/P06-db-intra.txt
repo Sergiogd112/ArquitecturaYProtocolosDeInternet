@@ -1,0 +1,81 @@
+
+        Area Scoped Link State Database (Area 0.0.0.0)
+
+Age: 1684 Type: Intra-Prefix
+Link State ID: 0.0.0.0
+Advertising Router: 0.0.0.10
+LS Sequence Number: 0x8000000b
+CheckSum: 0xfc2b Length: 44
+Duration: 00:28:02
+     Number of Prefix: 1
+     Reference: Router Id: 0.0.0.0 Adv: 0.0.0.10
+     Prefix Options: --|--|--|--
+     Prefix: 2150:5::/64
+
+Age: 1686 Type: Intra-Prefix
+Link State ID: 0.0.0.84
+Advertising Router: 0.0.0.10
+LS Sequence Number: 0x80000005
+CheckSum: 0x0290 Length: 44
+Duration: 00:28:04
+     Number of Prefix: 1
+     Reference: Network Id: 0.0.0.84 Adv: 0.0.0.10
+     Prefix Options: --|--|--|--
+     Prefix: 2150:1::/64
+
+Age: 1685 Type: Intra-Prefix
+Link State ID: 0.0.0.0
+Advertising Router: 0.0.0.12
+LS Sequence Number: 0x80000009
+CheckSum: 0x27fd Length: 44
+Duration: 00:28:02
+     Number of Prefix: 1
+     Reference: Router Id: 0.0.0.0 Adv: 0.0.0.12
+     Prefix Options: --|--|--|--
+     Prefix: 2150:6::/64
+
+Age: 1686 Type: Intra-Prefix
+Link State ID: 0.0.0.100
+Advertising Router: 0.0.0.12
+LS Sequence Number: 0x80000005
+CheckSum: 0x5417 Length: 44
+Duration: 00:28:03
+     Number of Prefix: 1
+     Reference: Network Id: 0.0.0.100 Adv: 0.0.0.12
+     Prefix Options: --|--|--|--
+     Prefix: 2150:4::/64
+
+Age: 1681 Type: Intra-Prefix
+Link State ID: 0.0.0.0
+Advertising Router: 0.0.0.13
+LS Sequence Number: 0x80000009
+CheckSum: 0x45dc Length: 44
+Duration: 00:27:58
+     Number of Prefix: 1
+     Reference: Router Id: 0.0.0.0 Adv: 0.0.0.13
+     Prefix Options: --|--|--|--
+     Prefix: 2150:7::/64
+
+Age: 1681 Type: Intra-Prefix
+Link State ID: 0.0.0.106
+Advertising Router: 0.0.0.13
+LS Sequence Number: 0x80000005
+CheckSum: 0x302f Length: 44
+Duration: 00:27:58
+     Number of Prefix: 1
+     Reference: Network Id: 0.0.0.106 Adv: 0.0.0.13
+     Prefix Options: --|--|--|--
+     Prefix: 2150:2::/64
+
+Age: 1685 Type: Intra-Prefix
+Link State ID: 0.0.0.108
+Advertising Router: 0.0.0.13
+LS Sequence Number: 0x80000005
+CheckSum: 0x4614 Length: 44
+Duration: 00:28:02
+     Number of Prefix: 1
+     Reference: Network Id: 0.0.0.108 Adv: 0.0.0.13
+     Prefix Options: --|--|--|--
+     Prefix: 2150:3::/64
+
+
