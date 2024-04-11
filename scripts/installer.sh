@@ -9,7 +9,7 @@ sudo apt-get install libreadline-gplv2-dev libncursesw5-dev libssl-dev \
     libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev git -y
 cd /opt
 sudo wget https://www.python.org/ftp/python/3.9.18/Python-3.9.18.tar.xz
-sudo tar xzf Python-3.9.18.tar.xz
+sudo tar xJf Python-3.9.18.tar.xz
 cd Python-3.9.18
 sudo ./configure --enable-optimizations
 sudo make altinstall
