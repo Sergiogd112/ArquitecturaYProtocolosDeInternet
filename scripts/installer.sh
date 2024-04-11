@@ -10,6 +10,7 @@ sudo apt-get install libreadline-gplv2-dev libncursesw5-dev libssl-dev \
 cd /opt
 sudo wget https://www.python.org/ftp/python/3.9.18/Python-3.9.18.tar.xz
 sudo tar xJf Python-3.9.18.tar.xz
+echo "Installing python3.9.18"
 cd Python-3.9.18
 sudo ./configure --enable-optimizations
 sudo make altinstall
@@ -33,3 +34,7 @@ pwd
 poetry update || echo "Error: Failed to update dependencies. It usually can be fixed by \"cd ArquitecturaYProtocolosDeInternet && poetry update\""
 echo "Project installed"
 echo "To run the project, run the command 'poetry run python3.8 main.py' from ArquitecturaYProtocolosDeInternet directory"
+
+cd
+
+cat ArquitecturaYProtocolosDeInternet/scripts/alias.sh >>~/.bashrc
