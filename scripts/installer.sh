@@ -16,7 +16,7 @@ sudo make altinstall
 cd
 echo "Installing poetry"
 
-python3.8 -m pip install poetry urllib3==1.26.6
+python3.9 -m pip install poetry urllib3==1.26.6
 poetry completions bash >>~/.bash_completion
 source ~/.bash_completion
 # check if the file "01-create-containers is in the directory"
