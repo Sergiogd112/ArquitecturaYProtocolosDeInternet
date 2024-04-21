@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://bfmxiviymbg87"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="GraphEdit" type="GraphEdit" parent="."]
+offset_right = 1149.0
+offset_bottom = 652.0
+scroll_offset = Vector2(-228, -114)
+
+[node name="GraphNode" type="GraphNode" parent="GraphEdit"]
+layout_mode = 0
+offset_left = 228.0
+offset_top = 114.0
+offset_right = 367.0
+offset_bottom = 169.0
+mouse_filter = 1
+title = "hey"

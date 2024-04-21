@@ -7,14 +7,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3d4f021c-beaf-4b56-a0a9-d3b0d01fe432" name="Changes" comment="reorganazing tui and adding configuration options">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/net.py" beforeDir="false" afterPath="$PROJECT_DIR$/net.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tui/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/tui/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tui/configure.py" beforeDir="false" afterPath="$PROJECT_DIR$/tui/configure.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tui/show.py" beforeDir="false" afterPath="$PROJECT_DIR$/tui/show.py" afterDir="false" />
-    </list>
+    <list default="true" id="3d4f021c-beaf-4b56-a0a9-d3b0d01fe432" name="Changes" comment="reorganazing tui and adding configuration options" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -161,6 +154,7 @@
       <workItem from="1708777688715" duration="1238000" />
       <workItem from="1708779240694" duration="15987000" />
       <workItem from="1708861161160" duration="8436000" />
+      <workItem from="1712410514622" duration="576000" />
     </task>
     <task id="LOCAL-00001" summary="reorganazing tui and adding configuration options">
       <option name="closed" value="true" />
@@ -198,17 +192,6 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="reorganazing tui and adding configuration options" />
     <option name="LAST_COMMIT_MESSAGE" value="reorganazing tui and adding configuration options" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/net.py</url>
-          <line>411</line>
-          <option name="timeStamp" value="4" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/ArquitecturaYProtocolosDeInternet$__main__.coverage" NAME="__main__ Coverage Results" MODIFIED="1708684415620" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tui" />
