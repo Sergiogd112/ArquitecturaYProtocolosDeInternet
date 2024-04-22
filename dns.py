@@ -1,11 +1,11 @@
 from typing import List
-from rich.prompt import Prompt, IntPrompt
+from rich.prompt import Prompt, IntPrompt,Confirm
 from rich.console import Console
 import tomllib
-
+import os
 
 class RRTable:
-    def __init__(self, origin, ttl, dns_name, admin, inv_origin, ip):
+    def __init__(self, origin, ttl, dns_name, admin, inv_origin, ip,serial=2018111201):
         self.origin = origin
         self.ttl = ttl
         self.dns_name = dns_name
@@ -13,6 +13,7 @@ class RRTable:
         self.inv_origin = inv_origin
         self.octets = 7 - len(inv_origin.split("."))
         self.ip = ip
+        self.serial=serial
         self.inv_name = (
             self.dns_name
             if self.dns_name.endswith(".")
@@ -27,35 +28,42 @@ class RRTable:
         self.mx = []
         self.a = []
         self.ptr = []
+        self.cname = []
+        self.inv_cname = []
         self.add_ns(self.dns_name, self.ip)
 
-    def add_ns(self, name, ip, iprange=""):
-        if ["",name] not in self.ns:
+    def add_ns(self, name, ip):
+
+        if ["", name] not in self.ns:
             self.ns.append(["", name])
             self.inv_ns.append(
-                [iprange, name if name.endswith(".") else name + "." + self.origin]
+                ["", name if name.endswith(".") else name + "." + self.origin]
             )
+
         self.add_a(name, ip)
 
     def add_mx(self, name, ip, priority):
         for mx in self.mx:
-            if mx[1]==name:
-                mx[0]=priority
+            if mx[1] == name:
+                mx[0] = priority
                 return
         self.mx.append([priority, name])
         self.add_a(name, ip)
 
     def add_a(self, name, ip):
-        for i,a in enumerate(self.a):
-            if a[0]==name:
-                self.a[i][1]=ip
-                self.ptr[i][0]=".".join(ip.split(".")[-self.octets :][::-1])
+        for i, a in enumerate(self.a):
+            if a[0] == name:
+                self.a[i][1] = ip
+
+                self.ptr[i][0] = ".".join(ip.split(".")[-self.octets :][::-1])
                 return
-            elif a[1] ==ip:
-                self.a[i][0]=name
-                self.ptr[i][1]=name if name.endswith(".") else name + "." + self.origin
+            elif a[1] == ip:
+                self.a[i][0] = name
+                self.ptr[i][1] = (
+                    name if name.endswith(".") else name + "." + self.origin
+                )
                 return
-                
+
         self.a.append([name, ip])
         self.ptr.append(
             [
@@ -63,6 +71,33 @@ class RRTable:
                 name if name.endswith(".") else name + "." + self.origin,
             ]
         )
+
+    def add_cname_inv(self, alias, name):
+        self.inv_cname.append([alias, name])
+
+    def add_sub(self, dns_name, domain, dns_ip, iprange, mask, ips):
+        self.ns.append([domain, dns_name + "." + domain])
+        segm = iprange.split(".")[-self.octets :]
+        segm[-1] += "/" + str(mask)
+        self.inv_ns.append(
+            [
+                ".".join(segm[::-1]),
+                (
+                    dns_name + "." + domain
+                    if domain.endswith(".")
+                    else dns_name + "." + domain + "." + self.origin
+                ),
+            ]
+        )
+
+        for ip in ips:
+
+            self.add_cname_inv(
+                ".".join(ip.split(".")[-self.octets :][::-1]),
+                ".".join(ip.split(".")[-self.octets :][::-1])
+                + "."
+                + ".".join(segm[::-1]),
+            )
 
     def generate_db_file(self):
         dir_content = f"$ORIGIN {self.origin}\n"
@@ -75,8 +110,7 @@ class RRTable:
         dir_content += "\t\t\t2419200\n"  # expire
         dir_content += "\t\t\t3600)\n"  # neg. TTL
         for row in self.ns:
-            cell0 = row[0] if row[0] != "" else "\t"
-            dir_content += f"{cell0}\tNS\t{row[1]}\n"
+            dir_content += f"{row[0]}\t\tNS\t{row[1]}\n"
         for row in self.mx:
             dir_content += f"\t\tMX\t{row[0]} {row[1]}\n"
         for row in self.a:
@@ -86,16 +120,17 @@ class RRTable:
         inv_content += f"$TTL {self.ttl}\n"
         inv_content += "\n"
         inv_content += f"@\tIN\tSOA\t{self.inv_name} {self.inv_admin} (\n"
-        inv_content += "\t\t\t2018111201\n"  # serial
+        inv_content += f"\t\t\t{self.serial}\n"  # serial
         inv_content += "\t\t\t86400\n"  # refresh
         inv_content += "\t\t\t7200\n"  # retry
         inv_content += "\t\t\t2419200\n"  # expire
         inv_content += "\t\t\t3600)\n"  # neg. TTL
         for row in self.inv_ns:
-            cell0 = row[0] if row[0] != "" else "\t"
-            inv_content += f"{cell0}\tNS\t{row[1]}\n"
+            inv_content += f"{row[0]}\t\tNS\t{row[1]}\n"
         for row in self.ptr:
             inv_content += f"{row[0]}\t\tPTR\t{row[1]}\n"
+        for row in self.inv_cname:
+            inv_content += f"{row[0]}\t\tCNAME\t{row[1]}\n"
         return dir_content, inv_content
 
     def print(self):
@@ -199,14 +234,14 @@ def run():
         origin = origin + "."
 
 
-def read_toml(file: str):
+def parse_toml(file: str,apply=False):
     console = Console()
     with open(file, "rb") as f:
         data = tomllib.load(f)
     console.print(data)
     origin = [key for key in data.keys() if "RR" != key][0]
     conf = data[origin]
-    rr_data = data["RR"]
+    rr_data = data[origin]["RR"]
 
     master_conf, slave_confs = generate_zone(
         origin,
@@ -236,6 +271,7 @@ def read_toml(file: str):
         conf["admin"],
         invorigin,
         conf["ip_master"],
+        conf["serial"]
     )
     # rrtable.print()
     # console.print(rr_data)
@@ -243,24 +279,50 @@ def read_toml(file: str):
         # console.print(rr)
         match rr["type"]:
             case "NS":
-                rrtable.add_ns(
-                    rr["name"], rr["ip"], rr["iprange"] if "iprange" in rr else ""
-                )
+                rrtable.add_ns(rr["name"], rr["ip"])
                 continue
             case "MX":
-                rrtable.add_mx(
-                    rr["name"], rr["ip"], rr["priority"]
-                )
+                rrtable.add_mx(rr["name"], rr["ip"], rr["priority"])
                 continue
             case "A":
-                rrtable.add_a(
-                    rr["name"], rr["ip"]
-                )
+                rrtable.add_a(rr["name"], rr["ip"])
                 continue
     rrtable.print()
-    return master_conf,slave_confs, rrtable
-            
-                
+    if "subdomain" in conf:
+        
+        for subdomain in conf["subdomain"]:
+            rrtable.add_sub(
+                subdomain["dns_name"],
+                subdomain["subdomain"],
+                subdomain["dns_ip"],
+                subdomain["iprange"],
+                subdomain["mask"],
+                subdomain["ips"],
+            )
+        rrtable.print()
+    lxc_path="/var/lib/lxc/"
+    if not apply:
+        return master_conf, slave_confs, rrtable
+    
+    if not os.path.exists(lxc_path):
+        return master_conf, slave_confs, rrtable
+    for name,conf_cont in zip([conf["master"]]+conf["slaves"],[master_conf]+ slave_confs):
+        with open(os.path.join(lxc_path,name,"rootfs","etc","bind","named.conf.local"),"w") as f:
+            f.write(conf_cont)
+        os.system(f"lxc-attach -n {name} -- named-checkconf")
+    dircon,invcon=rrtable.generate_db_file()
+    with open(os.path.join(lxc_path,conf["master"],"rootfs","var","cache","bind",conf["dirfile"]),"w") as f:
+        f.write(dircon)
+    os.system(f"lxc-attach -n {conf["master"]} -- named-checkzone {origin} /var/cache/bind/{conf["dirfile"]}")
+    
+    with open(os.path.join(lxc_path,conf["master"],"rootfs","var","cache","bind",conf["invfile"]),"w") as f:
+        f.write(invcon)
+    os.system(f"lxc-attach -n {conf["master"]} -- named-checkzone {invorigin} /var/cache/bind/{conf["invfile"]}")
+    if Confirm.ask("Restart bind"):
+        for name in [conf["master"]]+conf["slaves"]:
+            os.system(f"lxc-attach -n {name} -- systemctl restart bind9")
+        
+    return master_conf, slave_confs, rrtable
 
-if __name__=="__main__":
-    read_toml("dns.toml")
+if __name__ == "__main__":
+    parse_toml("dns.toml")

@@ -3,7 +3,7 @@ from rich.console import Console
 from rich.columns import Columns
 from rich.panel import Panel
 
-from dns import RRTable, generate_zone, read_toml
+from dns import RRTable, generate_zone, parse_toml
 
 
 @fixture
@@ -277,7 +277,8 @@ $TTL 64000
 def test_read_toml_dir(console):
     expected = """$ORIGIN lab.api.
 $TTL 64000
-@	IN	SOA ns admin (
+
+@	IN	SOA	ns admin (
 			2018111201
 			86400
 			7200
@@ -288,11 +289,41 @@ $TTL 64000
 		MX	10 mail
 ns		A	10.0.1.2
 ns2		A	10.0.1.3
-mail	A	10.0.1.4
+mail		A	10.0.1.4
 www		A	10.0.1.5
-usr1	A	10.0.1.66
-usr2	A	10.0.1.98"""
-    _, _, rrtable = read_toml("tests/dns.toml")
+usr1		A	10.0.1.66
+usr2		A	10.0.1.98
+"""
+    _, _, rrtable = parse_toml("tests/dns.toml")
+    result, _ = rrtable.generate_db_file()
+    columns = Columns()
+    columns.add_renderable(Panel(str(expected), width=70))
+    columns.add_renderable(Panel(str(result), width=70))
+    console.print(columns)
+    assert result == expected
+
+def test_read_toml_sub_dir(console):
+    expected = """$ORIGIN lab.api.
+$TTL 64000
+
+@	IN	SOA	ns admin (
+			2018111201
+			86400
+			7200
+			2419200
+			3600)
+		NS	ns
+		NS	ns2
+subgrup		NS	ns.subgrup
+		MX	10 mail
+ns		A	10.0.1.2
+ns2		A	10.0.1.3
+mail		A	10.0.1.4
+www		A	10.0.1.5
+usr1		A	10.0.1.66
+usr2		A	10.0.1.98
+"""
+    _, _, rrtable = parse_toml("tests/dns_sub.toml")
     result, _ = rrtable.generate_db_file()
     columns = Columns()
     columns.add_renderable(Panel(str(expected), width=70))

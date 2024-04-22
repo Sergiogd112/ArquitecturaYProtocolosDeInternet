@@ -1,6 +1,6 @@
 ["lab.api"]
 master = "PC03"
-master_hostname = "ns"
+master_hostname="ns"
 ip_master = "10.0.1.2"
 slaves = ["PC04"]
 ip_slaves = ["10.0.1.3"]
@@ -11,6 +11,7 @@ admin = "admin"
 mask = 27
 ttl = 64000
 serial = 2018111201
+
 
 [["lab.api".RR]]
 type = "NS"
@@ -38,4 +39,10 @@ type = "A"
 name = "usr2"
 ip = "10.0.1.98"
 
-
+[["lab.api".subdomain]]
+dns_name = "ns"
+subdomain = "subgrup"
+dns_ip = "10.0.1.130"
+iprange = "10.0.1.128"
+mask = 25
+ips = ["10.0.1.130", "10.0.1.131", "10.0.1.162"]
