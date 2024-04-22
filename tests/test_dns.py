@@ -302,6 +302,7 @@ usr2		A	10.0.1.98
     console.print(columns)
     assert result == expected
 
+
 def test_read_toml_sub_dir(console):
     expected = """$ORIGIN lab.api.
 $TTL 64000

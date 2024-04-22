@@ -1,11 +1,14 @@
 from typing import List
-from rich.prompt import Prompt, IntPrompt,Confirm
-from rich.console import Console
 import tomllib
 import os
 
+# from rich.prompt import Prompt, IntPrompt,
+from rich.prompt import Confirm
+from rich.console import Console
+
+
 class RRTable:
-    def __init__(self, origin, ttl, dns_name, admin, inv_origin, ip,serial=2018111201):
+    def __init__(self, origin, ttl, dns_name, admin, inv_origin, ip, serial=2018111201):
         self.origin = origin
         self.ttl = ttl
         self.dns_name = dns_name
@@ -13,7 +16,7 @@ class RRTable:
         self.inv_origin = inv_origin
         self.octets = 7 - len(inv_origin.split("."))
         self.ip = ip
-        self.serial=serial
+        self.serial = serial
         self.inv_name = (
             self.dns_name
             if self.dns_name.endswith(".")
@@ -205,36 +208,36 @@ def generate_zone(
     return name_conf_loca_master, name_conf_loca_slaves
 
 
-def run():
-    origin = Prompt.ask("Enter the origin:")
-    sides = Prompt.ask("Enter net ip (IP/MASK): ").split("/")
-    ip = sides[0]
-    if len(sides) == 1:
-        mask = IntPrompt.ask("Enter the net mask", choices=[0, 8, 16, 24])
-    else:
-        mask = int(sides[1])
-    dns_ip = Prompt.ask("enter the master dns ip:")
-    dns_name = Prompt.ask("enter the master dns name:")
-    slave_ip = Prompt.ask("enter the slave dns ip:")
-    slave_name = ""
-    if slave_ip != "":
-        slave_name = Prompt.ask("Enter the name of the slave:")
-    dbfile = Prompt.ask("File for the direct RR:", default=origin.slit(".")[0] + ".db")
-    invdbfile = Prompt.ask(
-        "File for the inverse RR:", default=origin.slit(".")[0] + "_inv.db"
-    )
-    masterconf, slaveconf = generate_zone(
-        origin, ip, mask, dbfile, invdbfile, dns_ip, slave_ip
-    )
-    console = Console()
-    console.print(masterconf)
-    console.print(slaveconf)
+# def run():
+#     origin = Prompt.ask("Enter the origin:")
+#     sides = Prompt.ask("Enter net ip (IP/MASK): ").split("/")
+#     ip = sides[0]
+#     if len(sides) == 1:
+#         mask = IntPrompt.ask("Enter the net mask", choices=[0, 8, 16, 24])
+#     else:
+#         mask = int(sides[1])
+#     dns_ip = Prompt.ask("enter the master dns ip:")
+#     dns_name = Prompt.ask("enter the master dns name:")
+#     slave_ip = Prompt.ask("enter the slave dns ip:")
+#     slave_name = ""
+#     if slave_ip != "":
+#         slave_name = Prompt.ask("Enter the name of the slave:")
+#     dbfile = Prompt.ask("File for the direct RR:", default=origin.slit(".")[0] + ".db")
+#     invdbfile = Prompt.ask(
+#         "File for the inverse RR:", default=origin.slit(".")[0] + "_inv.db"
+#     )
+#     masterconf, slaveconf = generate_zone(
+#         origin, ip, mask, dbfile, invdbfile, dns_ip, slave_ip
+#     )
+#     console = Console()
+#     console.print(masterconf)
+#     console.print(slaveconf)
 
-    if not (origin.endswith(".")):
-        origin = origin + "."
+#     if not (origin.endswith(".")):
+#         origin = origin + "."
 
 
-def parse_toml(file: str,apply=False):
+def parse_toml(file: str, apply=False):
     console = Console()
     with open(file, "rb") as f:
         data = tomllib.load(f)
@@ -271,7 +274,7 @@ def parse_toml(file: str,apply=False):
         conf["admin"],
         invorigin,
         conf["ip_master"],
-        conf["serial"]
+        conf["serial"],
     )
     # rrtable.print()
     # console.print(rr_data)
@@ -289,7 +292,6 @@ def parse_toml(file: str,apply=False):
                 continue
     rrtable.print()
     if "subdomain" in conf:
-        
         for subdomain in conf["subdomain"]:
             rrtable.add_sub(
                 subdomain["dns_name"],
@@ -300,29 +302,51 @@ def parse_toml(file: str,apply=False):
                 subdomain["ips"],
             )
         rrtable.print()
-    lxc_path="/var/lib/lxc/"
+    lxc_path = "/var/lib/lxc/"
     if not apply:
         return master_conf, slave_confs, rrtable
-    
+
     if not os.path.exists(lxc_path):
         return master_conf, slave_confs, rrtable
-    for name,conf_cont in zip([conf["master"]]+conf["slaves"],[master_conf]+ slave_confs):
-        with open(os.path.join(lxc_path,name,"rootfs","etc","bind","named.conf.local"),"w") as f:
+    for name, conf_cont in zip(
+        [conf["master"]] + conf["slaves"], [master_conf] + slave_confs
+    ):
+        with open(
+            os.path.join(lxc_path, name, "rootfs", "etc", "bind", "named.conf.local"),
+            "w",
+        ) as f:
             f.write(conf_cont)
         os.system(f"lxc-attach -n {name} -- named-checkconf")
-    dircon,invcon=rrtable.generate_db_file()
-    with open(os.path.join(lxc_path,conf["master"],"rootfs","var","cache","bind",conf["dirfile"]),"w") as f:
+    dircon, invcon = rrtable.generate_db_file()
+    with open(
+        os.path.join(
+            lxc_path, conf["master"], "rootfs", "var", "cache", "bind", conf["dirfile"]
+        ),
+        "w",
+    ) as f:
         f.write(dircon)
-    os.system(f"lxc-attach -n {conf["master"]} -- named-checkzone {origin} /var/cache/bind/{conf["dirfile"]}")
-    
-    with open(os.path.join(lxc_path,conf["master"],"rootfs","var","cache","bind",conf["invfile"]),"w") as f:
+    os.system(
+        f"lxc-attach -n {conf['master']} -- named-checkzone {origin} "
+        + f"/var/cache/bind/{conf['dirfile']}"
+    )
+
+    with open(
+        os.path.join(
+            lxc_path, conf["master"], "rootfs", "var", "cache", "bind", conf["invfile"]
+        ),
+        "w",
+    ) as f:
         f.write(invcon)
-    os.system(f"lxc-attach -n {conf["master"]} -- named-checkzone {invorigin} /var/cache/bind/{conf["invfile"]}")
+    os.system(
+        f"lxc-attach -n {conf['master']} -- named-checkzone {invorigin} "
+        + f"/var/cache/bind/{conf['invfile']}"
+    )
     if Confirm.ask("Restart bind"):
-        for name in [conf["master"]]+conf["slaves"]:
+        for name in [conf["master"]] + conf["slaves"]:
             os.system(f"lxc-attach -n {name} -- systemctl restart bind9")
-        
+
     return master_conf, slave_confs, rrtable
+
 
 if __name__ == "__main__":
     parse_toml("dns.toml")
