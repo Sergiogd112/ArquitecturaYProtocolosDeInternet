@@ -1,0 +1,17 @@
+$ORIGIN lab.api.
+$TTL 64000
+@	IN	SOA ns admin (
+			2018111201
+			86400
+			7200
+			2419200
+			3600)
+		NS	ns
+		NS	ns2
+		MX	10 mail
+ns		A	10.0.1.2
+ns2		A	10.0.1.3
+mail	A	10.0.1.4
+www		A	10.0.1.5
+usr1	A	10.0.1.66
+usr2	A	10.0.1.98

@@ -1,0 +1,38 @@
+["lab.api"]
+master = "PC03"
+master_hostname="ns"
+ip_master = "10.0.1.2"
+slaves = ["PC04"]
+ip_slaves = ["10.0.1.3"]
+iprange = "10.0.1.0"
+dirfile = "lab.db"
+invfile = "lab_inv.db"
+admin = "admin"
+mask = 27
+ttl = 64000
+
+[[RR]]
+type = "NS"
+name = "ns"
+ip = "10.0.1.2"
+[[RR]]
+type = "NS"
+name = "ns2"
+ip = "10.0.1.3"
+[[RR]]
+type = "MX"
+name = "mail"
+ip = "10.0.0.4"
+priority = 10
+[[RR]]
+type = "A"
+name = "www"
+ip = "10.0.1.5"
+[[RR]]
+type = "A"
+name = "usr1"
+ip = "10.0.1.66"
+[[RR]]
+type = "A"
+name = "usr2"
+ip = "10.01.98"
