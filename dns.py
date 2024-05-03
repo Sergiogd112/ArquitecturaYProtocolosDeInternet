@@ -1,5 +1,5 @@
 from typing import List
-import tomllib
+import toml
 import os
 
 # from rich.prompt import Prompt, IntPrompt,
@@ -239,8 +239,8 @@ def generate_zone(
 
 def parse_toml(file: str, apply=False):
     console = Console()
-    with open(file, "rb") as f:
-        data = tomllib.load(f)
+    with open(file, "r") as f:
+        data = toml.load(f)
     console.print(data)
     origin = [key for key in data.keys() if "RR" != key][0]
     conf = data[origin]
@@ -349,4 +349,4 @@ def parse_toml(file: str, apply=False):
 
 
 if __name__ == "__main__":
-    parse_toml("dns.toml")
+    parse_toml("dns.toml",apply=True)
