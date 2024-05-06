@@ -152,7 +152,7 @@ def generate_zone(
     invfile: str,
     dns_ip: str = None,
     slave_ips: List[str] = None,
-) -> tuple[str, None] | tuple[str, List[str]]:
+):
 
     invorigin = ".".join(ip.split(".")[: mask // 8][::-1]) + ".in-addr.arpa"
     # TTL=IntPrompt.ask("TTL:" default=64000)
