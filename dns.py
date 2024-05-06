@@ -307,7 +307,22 @@ def parse_toml(file: str, apply=False):
         return master_conf, slave_confs, rrtable
 
     if not os.path.exists(lxc_path):
-        return master_conf, slave_confs, rrtable
+        # return master_conf, slave_confs, rrtable
+        lxc_path = "dnsout"
+        for name, conf_cont in zip(
+            [conf["master"]] + conf["slaves"], [master_conf] + slave_confs
+        ):
+            os.makedirs(
+                os.path.join(lxc_path, name, "rootfs", "etc", "bind"), exist_ok=True
+            )
+            os.makedirs(
+                os.path.join(lxc_path, name, "rootfs", "var", "cache", "bind"),
+                exist_ok=True,
+            )
+        os.makedirs(
+            os.path.join(lxc_path, conf["master"], "rootfs", "var", "cache", "bind"),
+            exist_ok=True,
+        )
     for name, conf_cont in zip(
         [conf["master"]] + conf["slaves"], [master_conf] + slave_confs
     ):
@@ -349,4 +364,4 @@ def parse_toml(file: str, apply=False):
 
 
 if __name__ == "__main__":
-    parse_toml("dns.toml",apply=True)
+    print(parse_toml("dns.toml", apply=True))

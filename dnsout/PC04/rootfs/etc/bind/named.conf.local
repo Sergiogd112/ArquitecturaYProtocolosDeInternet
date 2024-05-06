@@ -1,0 +1,13 @@
+zone "lab.api" {
+    type slave;
+    file "lab.db";
+    masters { 10.0.1.2; };
+    masterfile-format text;
+};
+
+zone "1.0.10.in-addr.arpa" {
+    type slave;
+    file "lab_inv.db";
+    masters { 10.0.1.2; };
+    masterfile-format text;
+};

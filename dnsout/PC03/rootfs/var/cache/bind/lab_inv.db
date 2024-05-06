@@ -1,0 +1,21 @@
+$ORIGIN 1.0.10.in-addr.arpa.
+$TTL 64000
+
+@	IN	SOA	ns.lab.api. admin.lab.api. (
+			2018111201
+			86400
+			7200
+			2419200
+			3600)
+		NS	ns.lab.api.
+		NS	ns2.lab.api.
+128/25		NS	ns.subgrup.lab.api.
+2		PTR	ns.lab.api.
+3		PTR	ns2.lab.api.
+4		PTR	mail.lab.api.
+5		PTR	www.lab.api.
+66		PTR	usr1.lab.api.
+98		PTR	usr2.lab.api.
+130		CNAME	130.128/25
+131		CNAME	131.128/25
+162		CNAME	162.128/25

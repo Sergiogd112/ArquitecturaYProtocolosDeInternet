@@ -1,0 +1,11 @@
+zone "lab.api" {
+    type master;
+    file "lab.db";
+    allow-transfer { 10.0.1.3; };
+};
+
+zone "1.0.10.in-addr.arpa" {
+    type master;
+    file "lab_inv.db";
+    allow-transfer { 10.0.1.3; };
+};
