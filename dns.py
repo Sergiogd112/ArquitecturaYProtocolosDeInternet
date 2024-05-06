@@ -280,16 +280,15 @@ def parse_toml(file: str, apply=False):
     # console.print(rr_data)
     for rr in rr_data:
         # console.print(rr)
-        match rr["type"]:
-            case "NS":
-                rrtable.add_ns(rr["name"], rr["ip"])
-                continue
-            case "MX":
-                rrtable.add_mx(rr["name"], rr["ip"], rr["priority"])
-                continue
-            case "A":
-                rrtable.add_a(rr["name"], rr["ip"])
-                continue
+        if rr["type"] == "NS":
+            rrtable.add_ns(rr["name"], rr["ip"])
+            continue
+        elif rr["type"] == "MX":
+            rrtable.add_mx(rr["name"], rr["ip"], rr["priority"])
+            continue
+        elif rr["type"] == "A":
+            rrtable.add_a(rr["name"], rr["ip"])
+            continue
     rrtable.print()
     if "subdomain" in conf:
         for subdomain in conf["subdomain"]:
